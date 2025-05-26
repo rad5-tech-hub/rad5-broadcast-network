@@ -14,6 +14,7 @@ import { sendPasswordResetEmail } from "../utils/sendPasswordResetEmail";
 import crypto from "crypto";
 import { Op } from "sequelize";
 import { generateShareableLink } from "../utils/slug";
+import { toSentenceCase } from "../utils/textHelpers";
 
 // register agent
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -44,9 +45,11 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // const profileImage = req.file?.path || null;
     const profileImageUrl = req.file?.path;
 
+    // Save fullName in sentence case
+    const formattedName = toSentenceCase(fullName);
     // Create new user
     const newUser = await Agent.create({
-      fullName,
+      fullName: formattedName,
       email,
       password: hashedPassword,
       phoneNumber,

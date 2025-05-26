@@ -1,51 +1,70 @@
+import { Request, Response } from "express";
 import User from "../models/user";
 import Agent from "../models/agent";
-import { Request, Response } from "express";
+import { toSentenceCase } from "../utils/textHelpers"; 
+import { sendNewReferralNotification } from "../utils/sendNewReferralNotification";
 
 
 export const registerUserUnderAgent = async (req: Request, res: Response) => {
   const { fullName, email, phoneNumber, track } = req.body;
-  const { linkCode } = req.params; // get agent sharable link part
-  console.log(linkCode)
+  const { linkCode } = req.params;
 
-  if (!fullName || !email || !track || !phoneNumber) {
-    return res.status(400).json({ message: "Missing required fields" });
+  if (!fullName || !email || !phoneNumber || !track) {
+    return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
+    // Find agent by referral link
     const agent = await Agent.findOne({ where: { sharableLink: linkCode } });
 
     if (!agent) {
-      return res.status(404).json({ message: "Invalid agent link" });
+      return res.status(404).json({ message: "Invalid or expired agent link" });
     }
 
-    const existing = await User.findOne({ where: { email } });
-    if (existing) {
+    // Check if the user already exists
+    const existingUser = await User.findOne({ where: { email } });
+
+    if (existingUser) {
       return res.status(409).json({ message: "User already registered" });
     }
 
+    // Save fullName in sentence case
+    const formattedName = toSentenceCase(fullName);
+
+    // Register user under the agent
     const newUser = await User.create({
-      fullName,
+      fullName: formattedName,
       email,
       phoneNumber,
       track,
       agentId: agent.id,
     });
 
-    return res.status(201).json({ message: "User registered", user: newUser });
+    //send email notification to agent
+   await sendNewReferralNotification(agent, {
+     fullName: formattedName,
+     email,
+     phoneNumber,
+     track,
+   });
+    return res.status(201).json({
+      message: "User registered successfully under agent",
+      user: newUser,
+    });
   } catch (error: any) {
-    return res
-      .status(500)
-      .json({ message: "Registration failed", error: error.message });
+    console.error("Error during registration:", error);
+    return res.status(500).json({
+      message: "Registration failed",
+      error: error.message || "Unexpected error",
+    });
   }
 };
-
 
 export const getUsersUnderAgent = async (req: Request, res: Response) => {
   const { agentId } = req.params;
 
   try {
-    const agent : any = await Agent.findByPk(agentId, {
+    const agent: any = await Agent.findByPk(agentId, {
       include: [
         {
           model: User,
