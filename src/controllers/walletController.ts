@@ -3,7 +3,7 @@ import AgentWallet from "../models/agentWallet";
 import WalletTransaction from "../models/walletTransaction";
 import User from "../models/user";
 import Agent from "../models/agent";
-import {markUserAsPaidSchema} from '../validators/userValidation'
+import { markUserAsPaidSchema } from "../validators/userValidation";
 
 export const markUserAsPaid = async (req: Request, res: Response) => {
   const { userId, amountPaid, commissionRate = 0.1 } = req.body;
@@ -102,6 +102,22 @@ export const getAgentWalletAndTransactions = async (
         balance: wallet?.balance || 0,
       },
       transactions,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      message: "Failed to fetch wallet or transactions",
+      error: error.message,
+    });
+  }
+};
+
+//get all wallet transactions
+export const allWalletTransaction = async (req: Request, res: Response) => {
+  try {
+    const allTransactions = await WalletTransaction.findAll();
+    return res.status(200).json({
+      messsage: `All Agents's transactions retrived successfully`,
+      data: allTransactions,
     });
   } catch (error: any) {
     return res.status(500).json({
