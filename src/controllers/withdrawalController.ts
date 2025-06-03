@@ -1,17 +1,17 @@
 // controllers/withdrawalController.ts
-import { Request, Response } from "express";
-import WalletTransaction from "../models/walletTransaction";
-import Withdrawal from "../models/withdrawal";
-import AgentWallet from "../models/agentWallet";
-import Agent from "../models/agent";
-import { withdrawalRequestSchema } from "../validators/userValidation";
-import { sendAgentNotification } from "../utils/sendAgentNotification"; // helper we'll create
-import { sendWithdrawalEmailToAdmin } from "../utils/sendWithdrawalEmailToAdmin";
-import sequelize from "../database/db";
+import { Request, Response } from 'express';
+import WalletTransaction from '../models/walletTransaction';
+import Withdrawal from '../models/withdrawal';
+import AgentWallet from '../models/agentWallet';
+import Agent from '../models/agent';
+import { withdrawalRequestSchema } from '../validators/userValidation';
+import { sendAgentNotification } from '../utils/sendAgentNotification'; // helper we'll create
+import { sendWithdrawalEmailToAdmin } from '../utils/sendWithdrawalEmailToAdmin';
+import sequelize from '../database/db';
 
 export const approveOrRejectWithdrawal = async (
   req: Request,
-  res: Response
+  res: Response,
 ) => {
   const { id } = req.params;
   const { action } = req.body; // "approve" or "reject"
@@ -22,12 +22,12 @@ export const approveOrRejectWithdrawal = async (
 
     if (!withdrawal) {
       await transaction.rollback();
-      return res.status(404).json({ message: "Withdrawal request not found." });
+      return res.status(404).json({ message: 'Withdrawal request not found.' });
     }
 
-    if (withdrawal.status !== "pending") {
+    if (withdrawal.status !== 'pending') {
       await transaction.rollback();
-      return res.status(400).json({ message: "Withdrawal already processed." });
+      return res.status(400).json({ message: 'Withdrawal already processed.' });
     }
 
     const wallet = await AgentWallet.findOne({
@@ -40,42 +40,42 @@ export const approveOrRejectWithdrawal = async (
       await transaction.rollback();
       return res
         .status(404)
-        .json({ message: "Agent wallet or profile not found." });
+        .json({ message: 'Agent wallet or profile not found.' });
     }
 
-    if (action === "approve") {
+    if (action === 'approve') {
       if (wallet.balance < withdrawal.amount) {
         await transaction.rollback();
         return res
           .status(400)
-          .json({ message: "Insufficient wallet balance for approval." });
+          .json({ message: 'Insufficient wallet balance for approval.' });
       }
 
       wallet.balance -= withdrawal.amount;
       await wallet.save({ transaction });
 
-      withdrawal.status = "approved";
+      withdrawal.status = 'approved';
       await withdrawal.save({ transaction });
 
       await WalletTransaction.create(
         {
           agentId: withdrawal.agentId,
-          type: "debit",
+          type: 'debit',
           amount: withdrawal.amount,
-          description: "Withdrawal approved by admin",
+          description: 'Withdrawal approved by admin',
         },
-        { transaction }
+        { transaction },
       );
 
-      await sendAgentNotification(agent, withdrawal.amount, "approved");
-    } else if (action === "reject") {
-      withdrawal.status = "rejected";
+      await sendAgentNotification(agent, withdrawal.amount, 'approved');
+    } else if (action === 'reject') {
+      withdrawal.status = 'rejected';
       await withdrawal.save({ transaction });
 
-      await sendAgentNotification(agent, withdrawal.amount, "rejected");
+      await sendAgentNotification(agent, withdrawal.amount, 'rejected');
     } else {
       await transaction.rollback();
-      return res.status(400).json({ message: "Invalid action" });
+      return res.status(400).json({ message: 'Invalid action' });
     }
     await transaction.commit();
     return res
@@ -85,7 +85,7 @@ export const approveOrRejectWithdrawal = async (
     await transaction.rollback();
     return res
       .status(500)
-      .json({ message: "Error processing withdrawal", error: err.message });
+      .json({ message: 'Error processing withdrawal', error: err.message });
   }
 };
 
@@ -98,28 +98,33 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
 
   try {
     const wallet = await AgentWallet.findOne({ where: { agentId } });
+    //  Handle where wallet does not exist separately from insufficient balance
+    if (!wallet) {
+      return res.status(404).json({ message: 'Agent wallet not found.' });
+    }
 
-    if (!wallet || wallet.balance < amount) {
-      return res.status(400).json({ message: "Insufficient wallet balance." });
+    // Check if agent has sufficient balance
+    if (wallet.balance < amount) {
+      return res.status(400).json({ message: 'Insufficient wallet balance.' });
     }
 
     const withdrawal = await Withdrawal.create({
       agentId,
       amount,
       description,
-      status: "pending",
+      status: 'pending',
     });
 
     // ✅ Optional: Send email to admin
     await sendWithdrawalEmailToAdmin(agentId, amount, description);
 
     return res.status(201).json({
-      message: "Withdrawal request submitted.",
+      message: 'Withdrawal request submitted.',
       withdrawal,
     });
   } catch (err: any) {
     return res.status(500).json({
-      message: "Error creating withdrawal",
+      message: 'Error creating withdrawal',
       error: err.message,
     });
   }

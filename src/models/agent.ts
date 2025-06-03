@@ -6,7 +6,7 @@ class Agent extends Model {
   public fullName!: string;
   public email!: string;
   public password!: string;
-  public phobeNumber!: number;
+  public phoneNumber!: number;
   public sharableLink!: string | null;
   public isVerified!: boolean;
   public isActive!: boolean;

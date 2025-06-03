@@ -1,20 +1,20 @@
-import { Request, Response } from "express";
-import Agent from "../models/agent";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { Request, Response } from 'express';
+import Agent from '../models/agent';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import {
   registerSchema,
   loginSchema,
   forgetPasswordSchema,
   resetPasswordSchema,
-} from "../validators/userValidation";
-require("dotenv").config();
-import { sendVerificationEmailAgent } from "../utils/sendVerifyEmail";
-import { sendPasswordResetEmail } from "../utils/sendPasswordResetEmail";
-import crypto from "crypto";
-import { Op } from "sequelize";
-import { generateShareableLink } from "../utils/slug";
-import { toSentenceCase } from "../utils/textHelpers";
+} from '../validators/userValidation';
+require('dotenv').config();
+import { sendVerificationEmailAgent } from '../utils/sendVerifyEmail';
+import { sendPasswordResetEmail } from '../utils/sendPasswordResetEmail';
+import crypto from 'crypto';
+import { Op } from 'sequelize';
+import { generateShareableLink } from '../utils/slug';
+import { toSentenceCase } from '../utils/textHelpers';
 
 // register agent
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -31,7 +31,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // Check if agent already exists
     const existingUser = await Agent.findOne({ where: { email } });
     if (existingUser) {
-      res.status(400).json({ message: "Agent already exists" });
+      res.status(400).json({ message: 'Agent already exists' });
       return;
     }
 
@@ -62,7 +62,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const generateVerificationToken = jwt.sign(
       payLoad,
       process.env.SECRET as string,
-      { expiresIn: "1h" }
+      { expiresIn: '1h' },
     );
 
     await newUser.update({ verificationToken: generateVerificationToken });
@@ -70,11 +70,11 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     await sendVerificationEmailAgent(newUser.email, generateVerificationToken);
 
     res.status(200).json({
-      message: "Agent registered successfully",
+      message: 'Agent registered successfully',
       data: newUser,
     });
   } catch (error) {
-    res.status(500).json({ error: "Server error", details: error });
+    res.status(500).json({ error: 'Server error', details: error });
   }
 };
 
@@ -90,19 +90,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     const { email, password } = req.body;
     //check if user exist
     const user = await Agent.findOne({ where: { email } });
-    if (!user) {
-      res
-        .status(400)
-        .json({ message: `No User Found with this email ${email}` });
-      return;
-    }
-
-    if (!user.isActive) {
-      res.status(403).json({
-        message: "Your account has been deactivated. Please contact support.",
-      });
-      return;
-    }
+ 	if (!user) {
+    res.status(400).json({ message: `Invalid Credentials` });
+    return;
+  }
 
     //check if password matches
     const isPasswordMatch = bcrypt.compareSync(password, user.password);
@@ -111,9 +102,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (!user.isActive) {
+      res.status(403).json({
+        message: 'Your account has been deactivated. Please contact support.',
+      });
+      return;
+    }
+
     // check if user has verified their email
     if (!user.isVerified) {
-      res.status(401).json({ message: "Please verify your email to log in." });
+      res.status(401).json({ message: 'Please verify your email to log in.' });
       return;
     }
     //generate token for user
@@ -126,7 +124,7 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       .json({ message: `User Logged in successfully`, token: token });
     return;
   } catch (error) {
-    res.status(500).json({ error: "Server error", details: error });
+    res.status(500).json({ error: 'Server error', details: error });
     return;
   }
 };
@@ -134,20 +132,20 @@ export const login = async (req: Request, res: Response): Promise<void> => {
 //verify email
 export const verifyAgentEmail = async (req: Request, res: Response) => {
   const { token } = req.query;
-  if (!token || typeof token !== "string") {
-    return res.status(400).json({ message: "Invalid verification token" });
+  if (!token || typeof token !== 'string') {
+    return res.status(400).json({ message: 'Invalid verification token' });
   }
 
   const agent = await Agent.findOne({ where: { verificationToken: token } });
   if (!agent) {
-    return res.status(400).json({ message: "Invalid or expired token" });
+    return res.status(400).json({ message: 'Invalid or expired token' });
   }
 
   agent.isVerified = true;
   agent.verificationToken = null;
   await agent.save();
 
-  res.status(200).json({ message: "Agent email verified successfully" });
+  res.status(200).json({ message: 'Agent email verified successfully' });
 };
 
 //forget password
@@ -161,8 +159,12 @@ export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
     const user = await Agent.findOne({ where: { email } });
-    if (!user) return res.status(400).json({ message: `User not found` });
-    const resetToken = crypto.randomBytes(32).toString("hex");
+    if (!user) return res
+      .status(200)
+      .json({
+        message: 'If user with this email exists, a reset link has be sent',
+      });
+    const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpires = new Date(Date.now() + 10 * 60 * 1000);
 
     //update user with resetToken and resetTokenExpires
@@ -172,7 +174,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
     //send reset password link via email
 
     await sendPasswordResetEmail(user.email, resetToken);
-    return res.status(200).json({ message: "Password reset link sent" });
+    return res.status(200).json({ message: 'Password reset link sent' });
   } catch (error: any) {
     return res.status(500).json({ message: error.message });
   }
@@ -192,13 +194,13 @@ export const resetPassword = async (req: Request, res: Response) => {
       where: { resetToken: token, resetTokenExpires: { [Op.gt]: new Date() } },
     });
     if (!user)
-      return res.status(400).json({ message: "Invalid or expired token" });
+      return res.status(400).json({ message: 'Invalid or expired token' });
 
     //update user
     user.password = await bcrypt.hash(password, 10);
     (user.resetToken = null), (user.resetTokenExpires = null);
     await user.save();
-    return res.status(200).json({ message: "Password reset successful" });
+    return res.status(200).json({ message: 'Password reset successful' });
   } catch (error) {
     return res.status(500).json({ message: error });
   }

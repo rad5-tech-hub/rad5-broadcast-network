@@ -1,9 +1,9 @@
-import { Request, Response } from "express";
-import AgentWallet from "../models/agentWallet";
-import WalletTransaction from "../models/walletTransaction";
-import User from "../models/user";
-import Agent from "../models/agent";
-import { markUserAsPaidSchema } from "../validators/userValidation";
+import { NextFunction, Request, Response } from 'express';
+import AgentWallet from '../models/agentWallet';
+import WalletTransaction from '../models/walletTransaction';
+import User from '../models/user';
+import Agent from '../models/agent';
+import { markUserAsPaidSchema } from '../validators/userValidation';
 
 export const markUserAsPaid = async (req: Request, res: Response) => {
   const { userId, amountPaid, commissionRate = 0.1 } = req.body;
@@ -21,7 +21,7 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
 
     if (!user || !user.agentId) {
       return res.status(404).json({
-        message: "User or associated agent not found.",
+        message: 'User or associated agent not found.',
       });
     }
 
@@ -44,7 +44,7 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
     // 3. Log the transaction
     await WalletTransaction.create({
       agentId: user.agentId,
-      type: "credit",
+      type: 'credit',
       amount: commission,
       description: `Commission (${
         commissionRate * 100
@@ -52,13 +52,13 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
     });
 
     return res.status(200).json({
-      message: "Payment processed and agent credited",
+      message: 'Payment processed and agent credited',
       commission,
       walletBalance: wallet.balance,
     });
   } catch (err: any) {
     return res.status(500).json({
-      message: "Error processing payment",
+      message: 'Error processing payment',
       error: err.message,
     });
   }
@@ -66,7 +66,8 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
 
 export const getAgentWalletAndTransactions = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction,
 ) => {
   const { agentId } = req.params;
   const page = parseInt(req.query.page as string) || 1;
@@ -77,7 +78,7 @@ export const getAgentWalletAndTransactions = async (
     // 1. Confirm agent exists (optional, for better error handling)
     const agent = await Agent.findByPk(agentId);
     if (!agent) {
-      return res.status(404).json({ message: "Agent not found" });
+      return res.status(404).json({ message: 'Agent not found' });
     }
 
     // 2. Get wallet info
@@ -88,11 +89,11 @@ export const getAgentWalletAndTransactions = async (
       where: { agentId },
       limit,
       offset,
-      order: [["createdAt", "DESC"]],
+      order: [['createdAt', 'DESC']],
     });
 
     return res.status(200).json({
-      message: "Agent wallet and transaction history",
+      message: 'Agent wallet and transaction history',
       agent: {
         id: agent.id,
         name: agent.fullName,
@@ -104,10 +105,7 @@ export const getAgentWalletAndTransactions = async (
       transactions,
     });
   } catch (error: any) {
-    return res.status(500).json({
-      message: "Failed to fetch wallet or transactions",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
@@ -121,7 +119,7 @@ export const allWalletTransaction = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     return res.status(500).json({
-      message: "Failed to fetch wallet or transactions",
+      message: 'Failed to fetch wallet or transactions',
       error: error.message,
     });
   }
