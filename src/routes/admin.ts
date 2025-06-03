@@ -1,11 +1,11 @@
 import express from "express";
 import {
   getAllAgents,
-  deactivateAgentStatus,
+  toggleAgentStatus,
   getUsersByAgent,
   createAdmin,
   loginAdmin,
-} from "../controllers/adminController";
+} from '../controllers/adminController';
 import { isAdmin } from "../middlewares/adminAuth";
 
 const router = express.Router();
@@ -16,7 +16,7 @@ router.post("/login", loginAdmin);
 //@ts-ignore
 router.get("/agents", isAdmin, getAllAgents);
 //@ts-ignore
-router.patch("/agent/:id/status", isAdmin, deactivateAgentStatus);
+router.patch('/agent/:id/status', isAdmin, toggleAgentStatus);
 //@ts-ignore
 router.get("/agent/:sharableLink/users", isAdmin, getUsersByAgent);
 
