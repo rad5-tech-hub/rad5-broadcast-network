@@ -7,7 +7,7 @@
     "dev": "ts-node-dev src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "migrate": "sequelize-cli db:migrate --env production"
+    "migrate": "sequelize-cli db:migrate"
   },
   "keywords": [],
   "author": "",

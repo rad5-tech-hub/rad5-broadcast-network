@@ -15,6 +15,9 @@ import crypto from 'crypto';
 import { Op } from 'sequelize';
 import { generateShareableLink } from '../utils/slug';
 import { toSentenceCase } from '../utils/textHelpers';
+import Withdrawal from '../models/withdrawal';
+import User from '../models/user';
+import WalletTransaction from '../models/walletTransaction';
 
 // register agent
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -203,5 +206,95 @@ export const resetPassword = async (req: Request, res: Response) => {
     return res.status(200).json({ message: 'Password reset successful' });
   } catch (error) {
     return res.status(500).json({ message: error });
+  }
+};
+
+//agent dashboard
+export const getAgentDashboard = async (req: Request, res: Response) => {
+  try {
+    const { id: agentId } = (req as any).user; // <- We trust the token here
+
+    const {
+      startDate,
+      endDate,
+      page = '1',
+      limit = '10',
+    } = req.query as {
+      startDate?: string;
+      endDate?: string;
+      page?: string;
+      limit?: string;
+    };
+
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    const dateFilter: any = {};
+    if (startDate && endDate) {
+      dateFilter.createdAt = {
+        [Op.between]: [new Date(startDate), new Date(endDate)],
+      };
+    } else if (startDate) {
+      dateFilter.createdAt = { [Op.gte]: new Date(startDate) };
+    } else if (endDate) {
+      dateFilter.createdAt = { [Op.lte]: new Date(endDate) };
+    }
+
+    const { count: txCount, rows: transactions } =
+      await WalletTransaction.findAndCountAll({
+        where: {
+          agentId,
+          type: 'credit',
+          ...dateFilter,
+        },
+        order: [['createdAt', 'DESC']],
+        limit: limitNum,
+        offset,
+      });
+
+    const totalEarnings = transactions.reduce(
+      (sum, tx) => sum + Number(tx.amount),
+      0,
+    );
+
+    const totalReferrals = await User.count({
+      where: {
+        agentId: agentId,
+      },
+    });
+
+    const withdrawals = await Withdrawal.findAll({
+      where: {
+        agentId,
+        status: 'approved',
+      },
+      attributes: ['amount'],
+    });
+
+    const totalWithdrawals = withdrawals.reduce(
+      (sum, w) => sum + Number(w.amount),
+      0,
+    );
+
+    return res.status(200).json({
+      agentId,
+      stats: {
+        totalEarnings,
+        totalWithdrawals,
+        totalReferrals,
+        transactionCount: txCount,
+        currentPage: pageNum,
+        totalPages: Math.ceil(txCount / limitNum),
+        transactions,
+      },
+      message: 'Dashboard data retrieved successfully',
+    });
+  } catch (error: any) {
+    console.error('Agent dashboard error:', error);
+    return res.status(500).json({
+      message: 'Failed to retrieve dashboard',
+      error: error.message,
+    });
   }
 };
