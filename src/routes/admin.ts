@@ -5,6 +5,7 @@ import {
   getUsersByAgent,
   createAdmin,
   loginAdmin,
+  getAdminDashboard,
 } from '../controllers/adminController';
 import { isAdmin } from "../middlewares/adminAuth";
 
@@ -19,5 +20,7 @@ router.get("/agents", isAdmin, getAllAgents);
 router.patch('/agent/:id/status', isAdmin, toggleAgentStatus);
 //@ts-ignore
 router.get("/agent/:sharableLink/users", isAdmin, getUsersByAgent);
+//@ts-ignore
+router.get('/dashboard',  getAdminDashboard);
 
 export default router;
