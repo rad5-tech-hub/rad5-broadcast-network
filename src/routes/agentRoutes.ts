@@ -6,6 +6,7 @@ import {
   verifyAgentEmail,
   login,
   getAgentDashboard,
+  updateAgentProfilePicture,
 } from '../controllers/agentController';
 import { upload } from '../config/multer';
 import { isAgent } from '../middlewares/isAgent';
@@ -25,5 +26,13 @@ router.post('/reset-password/:token', resetPassword);
 
 //@ts-ignore
 router.get('/dashboard', isAgent, getAgentDashboard);
+
+//@ts-ignore
+router.patch(
+  '/profile-picture',
+  isAgent,
+  upload.single('profileImage'),
+  updateAgentProfilePicture,
+);
 
 export default router;

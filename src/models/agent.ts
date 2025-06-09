@@ -8,6 +8,7 @@ class Agent extends Model {
   public password!: string;
   public phoneNumber!: number;
   public sharableLink!: string | null;
+  public profileImage!:string |null
   public isVerified!: boolean;
   public isActive!: boolean;
   public verificationToken!: string | null;

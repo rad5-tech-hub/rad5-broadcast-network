@@ -4,11 +4,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-export const isAgent = (req: Request, res: Response, next: NextFunction) => {
+export const isAgent = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
   }
 
   try {
@@ -17,8 +22,6 @@ export const isAgent = (req: Request, res: Response, next: NextFunction) => {
     (req as any).user = decoded;
     next();
   } catch (error: any) {
-    return res
-      .status(401)
-      .json({ message: 'Invalid token', error: error.message });
+    res.status(401).json({ message: 'Invalid token', error: error.message });
   }
 };
