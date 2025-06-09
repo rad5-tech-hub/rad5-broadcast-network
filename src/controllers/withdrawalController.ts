@@ -94,16 +94,16 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
   const { error } = withdrawalRequestSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
-  const { agentId, amount, description } = req.body;
+  const { agentId, amount, description, bankName, accountNumber, accountName } =
+    req.body;
 
   try {
     const wallet = await AgentWallet.findOne({ where: { agentId } });
-    //  Handle where wallet does not exist separately from insufficient balance
+
     if (!wallet) {
       return res.status(404).json({ message: 'Agent wallet not found.' });
     }
 
-    // Check if agent has sufficient balance
     if (wallet.balance < amount) {
       return res.status(400).json({ message: 'Insufficient wallet balance.' });
     }
@@ -112,10 +112,12 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
       agentId,
       amount,
       description,
+      bankName,
+      accountNumber,
+      accountName,
       status: 'pending',
     });
 
-    // ✅ Optional: Send email to admin
     await sendWithdrawalEmailToAdmin(agentId, amount, description);
 
     return res.status(201).json({
