@@ -16,6 +16,8 @@ export const approveOrRejectWithdrawal = async (
   const { id } = req.params;
   const { action } = req.body; // "approve" or "reject"
   const transaction = await sequelize.transaction();
+  // Get admin ID from token
+  const adminId = (req as any).user.id;
 
   try {
     const withdrawal = await Withdrawal.findByPk(id, { transaction });
@@ -81,6 +83,7 @@ export const approveOrRejectWithdrawal = async (
     return res
       .status(200)
       .json({ message: `Withdrawal ${action}d successfully`, withdrawal });
+      adminId;
   } catch (err: any) {
     await transaction.rollback();
     return res
@@ -94,8 +97,10 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
   const { error } = withdrawalRequestSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
-  const { agentId, amount, description, bankName, accountNumber, accountName } =
+  const { amount, description, bankName, accountNumber, accountName } =
     req.body;
+
+  const agentId = (req as any).user.id;
 
   try {
     const wallet = await AgentWallet.findOne({ where: { agentId } });

@@ -4,6 +4,7 @@ import WalletTransaction from '../models/walletTransaction';
 import User from '../models/user';
 import Agent from '../models/agent';
 import { markUserAsPaidSchema } from '../validators/userValidation';
+import { sendAgentFundedEmail } from '../utils/sendAgentFundedEmail';
 
 export const markUserAsPaid = async (req: Request, res: Response) => {
   const { userId, amountPaid, commissionRate = 0.1 } = req.body;
@@ -50,6 +51,21 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
         commissionRate * 100
       }%) from payment for user ${user.fullName}`,
     });
+
+    // 4. Send email notification to agent
+    const agent = await Agent.findByPk(user.agentId); 
+    try {
+      if (agent?.email) {
+        await sendAgentFundedEmail(
+          { email: agent.email, firstName: agent.fullName?.split(' ')[0] },
+          commission,
+          user.fullName,
+        );
+      }
+    } catch (emailErr) {
+      console.error('Failed to send agent funded email:', emailErr);
+    }
+
 
     return res.status(200).json({
       message: 'Payment processed and agent credited',
