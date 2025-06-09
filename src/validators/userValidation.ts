@@ -85,7 +85,7 @@ export const markUserAsPaidSchema = Joi.object({
 });
 
 export const withdrawalRequestSchema = Joi.object({
-  agentId: Joi.string().uuid().required(),
+  
   amount: Joi.number().positive().required(),
   description: Joi.string().allow('', null),
   bankName: Joi.string().required(),
