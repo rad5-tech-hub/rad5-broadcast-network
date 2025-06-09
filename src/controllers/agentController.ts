@@ -280,10 +280,9 @@ export const resetPassword = async (req: Request, res: Response) => {
   }
 };
 
-//agent dashboard
 export const getAgentDashboard = async (req: Request, res: Response) => {
   try {
-    const { id: agentId } = (req as any).user; // <- We trust the token here
+    const { id: agentId } = (req as any).user;
 
     const {
       startDate,
@@ -331,7 +330,7 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
 
     const totalReferrals = await User.count({
       where: {
-        agentId: agentId,
+        agentId,
       },
     });
 
@@ -348,8 +347,20 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
       0,
     );
 
+    // ✅ Fetch full agent info
+    const agent = await Agent.findByPk(agentId, {
+      attributes: {
+        exclude: ['password'], // make sure to exclude password or sensitive fields
+      },
+    });
+
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
     return res.status(200).json({
-      agentId,
+      message: 'Dashboard data retrieved successfully',
+      agent,
       stats: {
         totalEarnings,
         totalWithdrawals,
@@ -359,12 +370,51 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
         totalPages: Math.ceil(txCount / limitNum),
         transactions,
       },
-      message: 'Dashboard data retrieved successfully',
     });
   } catch (error: any) {
     console.error('Agent dashboard error:', error);
     return res.status(500).json({
       message: 'Failed to retrieve dashboard',
+      error: error.message,
+    });
+  }
+};
+
+
+//update agent profile image
+export const updateAgentProfilePicture = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  const { id: agentId } = (req as any).user;
+
+  try {
+    const profileImageUrl = req.file?.path;
+
+    if (!profileImageUrl) {
+      res.status(400).json({ message: 'No image file uploaded' });
+      return;
+    }
+
+    const agent = await Agent.findByPk(agentId);
+    if (!agent) {
+      res.status(404).json({ message: 'Agent not found' });
+      return;
+    }
+
+    agent.profileImage = profileImageUrl;
+    await agent.save();
+
+    res.status(200).json({
+      message: 'Profile picture updated successfully',
+      data: {
+        profileImage: agent.profileImage,
+      },
+    });
+  } catch (error: any) {
+    console.error('Error updating profile picture:', error);
+    res.status(500).json({
+      message: 'Internal server error',
       error: error.message,
     });
   }
