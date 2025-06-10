@@ -268,7 +268,7 @@ export const deleteAgentByAdmin = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Agent not found' });
     }
 
-    await agent.destroy();
+    await agent.destroy()
 
     return res.status(200).json({ message: 'Agent deleted successfully' });
   } catch (error: any) {
