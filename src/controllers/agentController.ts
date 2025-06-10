@@ -19,67 +19,6 @@ import Withdrawal from '../models/withdrawal';
 import User from '../models/user';
 import WalletTransaction from '../models/walletTransaction';
 
-// // register agent
-// export const register = async (req: Request, res: Response): Promise<void> => {
-//   // Validate user input
-//   const { error } = registerSchema.validate(req.body);
-//   if (error) {
-//     res.status(400).json({ error: error.details[0].message });
-//     return;
-//   }
-
-//   const { fullName, email, password, phoneNumber } = req.body;
-
-//   try {
-//     // Check if agent already exists
-//     const existingUser = await Agent.findOne({ where: { email } });
-//     if (existingUser) {
-//       res.status(400).json({ message: 'Agent already exists' });
-//       return;
-//     }
-
-//     // Hash password
-//     const hashedPassword = bcrypt.hashSync(password, 10);
-
-//     // Generate shareable link
-//     const sharableLink = generateShareableLink(fullName, phoneNumber);
-
-//     // Get uploaded image URL from Cloudinary
-//     // const profileImage = req.file?.path || null;
-//     const profileImageUrl = req.file?.path;
-
-//     // Save fullName in sentence case
-//     const formattedName = toSentenceCase(fullName);
-//     // Create new user
-//     const newUser = await Agent.create({
-//       fullName: formattedName,
-//       email,
-//       password: hashedPassword,
-//       phoneNumber,
-//       sharableLink,
-//       profileImage: profileImageUrl, // Save image URL
-//     });
-
-//     // Generate verification token
-//     const payLoad = { id: newUser.id };
-//     const generateVerificationToken = jwt.sign(
-//       payLoad,
-//       process.env.SECRET as string,
-//       { expiresIn: '1h' },
-//     );
-
-//     await newUser.update({ verificationToken: generateVerificationToken });
-
-//     await sendVerificationEmailAgent(newUser.email, generateVerificationToken);
-
-//     res.status(200).json({
-//       message: 'Agent registered successfully',
-//       data: newUser,
-//     });
-//   } catch (error) {
-//     res.status(500).json({ error: 'Server error', details: error });
-//   }
-// };
 // register agent
 export const register = async (req: Request, res: Response): Promise<void> => {
   // Validate user input
@@ -245,7 +184,6 @@ export const verifyAgentEmail = async (req: Request, res: Response) => {
     </body>
   </html>
 `);
-
 };
 
 //forget password

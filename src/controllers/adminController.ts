@@ -257,3 +257,23 @@ export const getAdminDashboard = async (req: Request, res: Response) => {
     });
   }
 };
+
+//delete agent
+export const deleteAgentByAdmin = async (req: Request, res: Response) => {
+  const { id } = req.params;
+
+  try {
+    const agent = await Agent.findByPk(id);
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    await agent.destroy();
+
+    return res.status(200).json({ message: 'Agent deleted successfully' });
+  } catch (error: any) {
+    return res
+      .status(500)
+      .json({ message: 'Failed to delete agent', error: error.message });
+  }
+};
