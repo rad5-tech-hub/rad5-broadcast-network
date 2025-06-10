@@ -166,7 +166,7 @@ export const verifyAgentEmail = async (req: Request, res: Response) => {
         <h2 style="color: #28a745;">✅ Email Verified Successfully!</h2>
         <p style="font-size: 16px; color: #333;">Thank you for verifying your email. You can now log in to your account.</p>
         <button 
-          onclick="window.location.href='${process.env.FRONTEND_BASE_URL}/login';" 
+          onclick="window.location.href='${process.env.FRONTEND_BASE_URL}/signin;" 
           style="
             margin-top: 20px;
             padding: 10px 20px;
