@@ -220,7 +220,32 @@ export const verifyAgentEmail = async (req: Request, res: Response) => {
   agent.verificationToken = null;
   await agent.save();
 
-  res.status(200).json({ message: 'Agent email verified successfully' });
+  return res.status(200).send(`
+  <html>
+    <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f5f5f5;">
+      <div style="background: white; display: inline-block; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <h2 style="color: #28a745;">✅ Email Verified Successfully!</h2>
+        <p style="font-size: 16px; color: #333;">Thank you for verifying your email. You can now log in to your account.</p>
+        <button 
+          onclick="window.location.href='${process.env.FRONTEND_BASE}/login';" 
+          style="
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+          "
+        >
+          Login Now
+        </button>
+      </div>
+    </body>
+  </html>
+`);
+
 };
 
 //forget password
@@ -379,7 +404,6 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
     });
   }
 };
-
 
 //update agent profile image
 export const updateAgentProfilePicture = async (
