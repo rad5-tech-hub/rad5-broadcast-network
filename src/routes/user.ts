@@ -3,12 +3,14 @@ import express from "express";
 import {
   registerUserUnderAgent,
   getUsersUnderAgent,
-} from "../controllers/userController";
+  redirectToRegistrationForm,
+} from '../controllers/userController';
 
 const router = express.Router();
 //@ts-ignore
 router.post("/register/:linkCode", registerUserUnderAgent);
 //@ts-ignore
 router.get("/agent/:agentId", getUsersUnderAgent);
+router.get('/user/register/:linkCode', redirectToRegistrationForm);
 
 export default router;
