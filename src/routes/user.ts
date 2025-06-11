@@ -3,7 +3,7 @@ import express from "express";
 import {
   registerUserUnderAgent,
   getUsersUnderAgent,
-  redirectToRegistrationForm,
+
 } from '../controllers/userController';
 
 const router = express.Router();
