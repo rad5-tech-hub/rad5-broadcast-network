@@ -11,6 +11,6 @@ const router = express.Router();
 router.post("/register/:linkCode", registerUserUnderAgent);
 //@ts-ignore
 router.get("/agent/:agentId", getUsersUnderAgent);
-router.get('/user/register/:linkCode', redirectToRegistrationForm);
+
 
 export default router;
