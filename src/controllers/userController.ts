@@ -3,6 +3,9 @@ import User from "../models/user";
 import Agent from "../models/agent";
 import { toSentenceCase } from "../utils/textHelpers"; 
 import { sendNewReferralNotification } from "../utils/sendNewReferralNotification";
+import dotenv from 'dotenv';
+dotenv.config();
+
 
 
 export const registerUserUnderAgent = async (req: Request, res: Response) => {
