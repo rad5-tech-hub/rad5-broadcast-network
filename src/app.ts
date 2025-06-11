@@ -7,6 +7,7 @@ import walletRoutes from "./routes/wallet";
 import adminRoutes from "./routes/admin";
 import withdrawalRoutes from "./routes/withdrawal";
 import "./models/index";
+import referralRoutes from './routes/referralRoutes';
 
 const app = express();
 
@@ -33,5 +34,6 @@ app.use("/api/v1/user", userRoutes);
 app.use("/api/v1/wallet", walletRoutes);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/withdrawal", withdrawalRoutes);
+app.use('/', referralRoutes);
 
 export default app;
