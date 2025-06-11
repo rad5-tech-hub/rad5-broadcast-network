@@ -45,7 +45,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const sharableLink = generateShareableLink(fullName, phoneNumber);
 
     // Generate full referral link using frontend base URL
-    const referralLink = `${process.env.FRONTEND_BASE_URL}/${sharableLink}`;
+    const referralLink = `${process.env.BACKEND_BASE_URL}/${sharableLink}`;
+
 
     // Get uploaded image URL from Cloudinary
     const profileImageUrl = req.file?.path;
