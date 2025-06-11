@@ -92,3 +92,13 @@ export const getUsersUnderAgent = async (req: Request, res: Response) => {
       .json({ message: "Failed to fetch users", error: error.message });
   }
 };
+
+
+//redirect user
+export const redirectToRegistrationForm = (req: Request, res: Response) => {
+  const { linkCode } = req.params;
+
+  // Redirect to frontend registration page with ?ref=code
+  const frontendUrl = `${process.env.FRONTEND_BASE_URL}/register?ref=${linkCode}`;
+  return res.redirect(frontendUrl);
+};
