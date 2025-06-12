@@ -8,7 +8,8 @@ import {
   forgetPasswordSchema,
   resetPasswordSchema,
 } from '../validators/userValidation';
-require('dotenv').config();
+import dotenv from 'dotenv'
+dotenv.config();
 import { sendVerificationEmailAgent } from '../utils/sendVerifyEmail';
 import { sendPasswordResetEmail } from '../utils/sendPasswordResetEmail';
 import crypto from 'crypto';
