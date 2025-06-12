@@ -17,6 +17,8 @@ export const handleReferralRedirect = async (req: Request, res: Response) => {
     return res.redirect(frontendUrl);
   } catch (error) {
     console.error('Referral redirect error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({  message:
+        'Oops! Something went wrong while processing your referral. Please try again later or contact support.',
+    });;
   }
 };
