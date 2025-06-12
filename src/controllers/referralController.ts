@@ -1,7 +1,22 @@
 import { Request, Response } from 'express';
 
-export const handleReferralRedirect = (req: Request, res: Response) => {
+import Agent from '../models/agent';
+
+export const handleReferralRedirect = async (req: Request, res: Response) => {
   const { referralCode } = req.params;
-  const frontendUrl = `https://rad-5-broker-network.vercel.app/signup?ref=${referralCode}`;
-  return res.redirect(frontendUrl);
+
+  try {
+    const agent = await Agent.findOne({ where: { referralCode } });
+
+    if (!agent) {
+      return res.status(404).json({ message: 'Invalid referral link' });
+    }
+
+    // Redirect to signup with ref query
+    const frontendUrl = `https://rad-5-broker-network.vercel.app/signup?ref=${referralCode}`;
+    return res.redirect(frontendUrl);
+  } catch (error) {
+    console.error('Referral redirect error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
 };
