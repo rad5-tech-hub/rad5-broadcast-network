@@ -13,7 +13,7 @@ export const handleReferralRedirect = async (req: Request, res: Response) => {
     }
 
     // Redirect to signup with ref query
-    const frontendUrl = `https://rad-5-broker-network.vercel.app/register?ref=${referralCode}`;
+    const frontendUrl = `https://rad-5-broker-network.vercel.app/signup?ref=${referralCode}`;
     return res.redirect(frontendUrl);
   } catch (error) {
     console.error('Referral redirect error:', error);
