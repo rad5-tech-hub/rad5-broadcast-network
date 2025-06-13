@@ -53,7 +53,7 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
     });
 
     // 4. Send email notification to agent
-    const agent = await Agent.findByPk(user.agentId); 
+    const agent = await Agent.findByPk(user.agentId);
     try {
       if (agent?.email) {
         await sendAgentFundedEmail(
@@ -65,7 +65,6 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
     } catch (emailErr) {
       console.error('Failed to send agent funded email:', emailErr);
     }
-
 
     return res.status(200).json({
       message: 'Payment processed and agent credited',
@@ -125,17 +124,27 @@ export const getAgentWalletAndTransactions = async (
   }
 };
 
-//get all wallet transactions
+// get all wallet transactions with agent details
 export const allWalletTransaction = async (req: Request, res: Response) => {
   try {
-    const allTransactions = await WalletTransaction.findAll();
+    const allTransactions = await WalletTransaction.findAll({
+      include: [
+        {
+          model: Agent,
+          attributes: ['id', 'fullName', 'email', 'phoneNumber'], // you can adjust as needed
+        },
+      ],
+      order: [['createdAt', 'DESC']], // optional: show latest first
+    });
+
     return res.status(200).json({
-      messsage: `All Agents's transactions retrived successfully`,
+      message: `All agents' transactions retrieved successfully`,
       data: allTransactions,
     });
   } catch (error: any) {
+    console.error('Error fetching wallet transactions:', error);
     return res.status(500).json({
-      message: 'Failed to fetch wallet or transactions',
+      message: 'Failed to fetch wallet transactions',
       error: error.message,
     });
   }
