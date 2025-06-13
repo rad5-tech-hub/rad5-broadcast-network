@@ -14,6 +14,6 @@ router.post('/request', isAgent, requestWithdrawal);
 //@ts-ignore
 router.put('/approve/:id', isAdmin, approveOrRejectWithdrawal); 
 //@ts-ignore
-router.get('/withdrawals', getAllWithdrawals);
+router.get('/withdrawals',isAdmin, getAllWithdrawals);
 
 export default router;
