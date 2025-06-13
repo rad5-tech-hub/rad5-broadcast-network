@@ -83,7 +83,7 @@ export const approveOrRejectWithdrawal = async (
     return res
       .status(200)
       .json({ message: `Withdrawal ${action}d successfully`, withdrawal });
-      adminId;
+    adminId;
   } catch (err: any) {
     await transaction.rollback();
     return res
@@ -133,6 +133,35 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
     return res.status(500).json({
       message: 'Error creating withdrawal',
       error: err.message,
+    });
+  }
+};
+
+//get all withdrawals
+export const getAllWithdrawals = async (req: Request, res: Response) => {
+  try {
+    const withdrawals = await Withdrawal.findAll({
+      where: {
+        status: ['pending', 'approved'],
+      },
+      include: [
+        {
+          model: Agent,
+          attributes: ['id', 'fullName', 'email', 'phoneNumber'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    return res.status(200).json({
+      message: 'Withdrawals retrieved successfully',
+      data: withdrawals || [],
+    });
+  } catch (error: any) {
+    console.error('Error fetching withdrawals:', error);
+    return res.status(500).json({
+      message: 'Failed to retrieve withdrawals',
+      error: error.message,
     });
   }
 };

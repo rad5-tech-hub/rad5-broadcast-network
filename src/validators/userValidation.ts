@@ -92,3 +92,23 @@ export const withdrawalRequestSchema = Joi.object({
   accountNumber: Joi.string().required(),
   accountName: Joi.string().required(),
 });
+
+
+//user validation
+export const registerUserSchema = Joi.object({
+  fullName: Joi.string().min(2).max(100).required().messages({
+    'string.empty': 'Full name is required',
+    'string.min': 'Full name must be at least 2 characters',
+  }),
+  email: Joi.string().email().required().messages({
+    'string.empty': 'Email is required',
+    'string.email': 'Please enter a valid email address',
+  }),
+  phoneNumber: Joi.string().min(7).required().messages({
+    'string.empty': 'Phone number is required',
+    'string.min': 'Phone number is too short',
+  }),
+  track: Joi.string().required().messages({
+    'string.empty': 'Track is required',
+  }),
+});

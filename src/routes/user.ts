@@ -1,16 +1,14 @@
 // routes/userRoutes.ts
-import express from "express";
+import express from 'express';
 import {
   registerUserUnderAgent,
   getUsersUnderAgent,
-
 } from '../controllers/userController';
 
 const router = express.Router();
 //@ts-ignore
-router.post("/register/:linkCode", registerUserUnderAgent);
+router.post('/register/:linkCode', registerUserUnderAgent);
 //@ts-ignore
-router.get("/agent/:agentId", getUsersUnderAgent);
-
+router.get('/agent/:agentId', getUsersUnderAgent);
 
 export default router;
