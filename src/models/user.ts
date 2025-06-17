@@ -8,6 +8,7 @@ class User extends Model {
   public phoneNubmer!: string;
   public track!: string;
   public agentId!: string;
+  public paymentStatus!: string;
 }
 
 User.init(
@@ -35,6 +36,12 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+   paymentStatus: {
+  type: DataTypes.ENUM('paid', 'unpaid'),
+  defaultValue: 'unpaid',
+  allowNull: false,
+},
+
     agentId: {
       type: DataTypes.UUID, // Foreign key to Agent
       allowNull: true,

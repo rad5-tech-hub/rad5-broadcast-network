@@ -299,6 +299,23 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
       },
     });
 
+    //get all user under agent
+    const referredUsers = await User.findAll({
+      where: { agentId },
+      attributes: [
+        'id',
+        'fullName',
+        'email',
+        'phoneNumber',
+        'track',
+        'paymentStatus',
+        'createdAt',
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+
+    //get all agent withdrawals
     const withdrawals = await Withdrawal.findAll({
       where: {
         agentId,
@@ -330,6 +347,7 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
         totalEarnings,
         totalWithdrawals,
         totalReferrals,
+        referredUsers,
         transactionCount: txCount,
         currentPage: pageNum,
         totalPages: Math.ceil(txCount / limitNum),
