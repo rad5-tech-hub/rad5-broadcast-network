@@ -97,6 +97,51 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
   }
 };
 
+export const getAgentWalletAndTransactions = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  const { agentId } = req.params;
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 10;
+  const offset = (page - 1) * limit;
+
+  try {
+    // 1. Confirm agent exists (optional, for better error handling)
+    const agent = await Agent.findByPk(agentId);
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    // 2. Get wallet info
+    const wallet = await AgentWallet.findOne({ where: { agentId } });
+
+    // 3. Get transactions
+    const transactions = await WalletTransaction.findAll({
+      where: { agentId },
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']],
+    });
+
+    return res.status(200).json({
+      message: 'Agent wallet and transaction history',
+      agent: {
+        id: agent.id,
+        name: agent.fullName,
+        email: agent.email,
+      },
+      wallet: {
+        balance: wallet?.balance || 0,
+      },
+      transactions,
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
 // get all wallet transactions with agent details
 export const allWalletTransaction = async (req: Request, res: Response) => {
   try {
