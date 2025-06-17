@@ -44,6 +44,7 @@ export const registerUserUnderAgent = async (req: Request, res: Response) => {
       phoneNumber,
       track,
       agentId: agent.id,
+      paymentStatus: 'unpaid', 
     });
 
     await sendNewReferralNotification(agent, {

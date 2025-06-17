@@ -210,7 +210,7 @@ export const getAdminDashboard = async (req: Request, res: Response) => {
     // Total agents
 
     const agents = await Agent.findAll({
-      attributes: ['id', 'fullname', 'email'],
+      attributes: ['id', 'fullname', 'email', 'phoneNumber' , 'track'],
     });
 
     const totalAgents = agents.length;
