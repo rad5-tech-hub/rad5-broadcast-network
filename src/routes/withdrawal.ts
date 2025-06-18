@@ -4,6 +4,7 @@ import {
   requestWithdrawal,
   approveOrRejectWithdrawal,
   getAllWithdrawals,
+  getAgentWithdrawals,
 } from '../controllers/withdrawalController';
 import { isAgent } from '../middlewares/isAgent';
 import { isAdmin } from '../middlewares/adminAuth';
@@ -15,5 +16,8 @@ router.post('/request', isAgent, requestWithdrawal);
 router.put('/approve/:id', isAdmin, approveOrRejectWithdrawal); 
 //@ts-ignore
 router.get('/withdrawals',isAdmin, getAllWithdrawals);
+//@ts-ignore
+router.get('/withdrawals/:agentId', isAgent, getAgentWithdrawals);
+
 
 export default router;

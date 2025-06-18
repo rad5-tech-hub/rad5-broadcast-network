@@ -165,3 +165,36 @@ export const getAllWithdrawals = async (req: Request, res: Response) => {
     });
   }
 };
+
+// get withdrawals for a single agent
+
+export const getAgentWithdrawals = async (req: Request, res: Response) => {
+  const { agentId } = req.params;
+
+  try {
+    const withdrawals = await Withdrawal.findAll({
+      where: {
+        agentId,
+        status: ['pending', 'approved'],
+      },
+      include: [
+        {
+          model: Agent,
+          attributes: ['id', 'fullName', 'email', 'phoneNumber'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    return res.status(200).json({
+      message: `Withdrawals for agent ${agentId} retrieved successfully`,
+      data: withdrawals || [],
+    });
+  } catch (error: any) {
+    console.error('Error fetching withdrawals for agent:', error);
+    return res.status(500).json({
+      message: 'Failed to retrieve agent withdrawals',
+      error: error.message,
+    });
+  }
+};
