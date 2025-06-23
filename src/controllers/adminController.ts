@@ -211,6 +211,13 @@ export const getAdminDashboard = async (req: Request, res: Response) => {
 
     const agents = await Agent.findAll({
       attributes: ['id', 'fullname', 'email', 'phoneNumber'],
+      include: [
+        {
+          model: User,
+          as: 'Users', // or the alias if you used one
+          attributes: ['id', 'fullName', 'email', 'phoneNumber', 'track' , 'paymentStatus'],
+        },
+      ],
     });
 
     const totalAgents = agents.length;

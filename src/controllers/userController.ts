@@ -5,7 +5,7 @@ import { toSentenceCase } from '../utils/textHelpers';
 import { sendNewReferralNotification } from '../utils/sendNewReferralNotification';
 import dotenv from 'dotenv';
 dotenv.config();
-import { registerUserSchema } from '../validators/userValidation';
+import { registerUserSchema, loginSchema } from '../validators/userValidation';
 
 export const registerUserUnderAgent = async (req: Request, res: Response) => {
   const { linkCode } = req.params;
