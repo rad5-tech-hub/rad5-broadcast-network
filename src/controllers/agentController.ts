@@ -401,3 +401,38 @@ export const updateAgentProfilePicture = async (
     });
   }
 };
+
+
+//get all most recent agents and users
+export const getAllAgentsAndUsers = async (req: Request, res: Response) => {
+  try {
+    const agents = await Agent.findAll({
+      attributes: ['id', 'fullName', 'email', 'phoneNumber', 'createdAt'],
+      order: [['createdAt', 'DESC']],
+    });
+
+    const users = await User.findAll({
+      attributes: [
+        'id',
+        'fullName',
+        'email',
+        'phoneNumber',
+        'track',
+        'createdAt',
+      ],
+      order: [['createdAt', 'DESC']],
+    });
+
+    return res.status(200).json({
+      message: 'Agents and users retrieved successfully',
+      agents,
+      users,
+    });
+  } catch (error: any) {
+    console.error('Error fetching agents and users:', error);
+    return res.status(500).json({
+      message: 'Failed to fetch agents and users',
+      error: error.message,
+    });
+  }
+};
