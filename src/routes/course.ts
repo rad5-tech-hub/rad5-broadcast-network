@@ -11,7 +11,7 @@ const router = Router();
 //@ts-ignore
 router.post('/create-course', isAdmin, createCourse);
 //@ts-ignore
-router.get('/courses', isAdmin,getAllCourses); 
+router.get('/courses', getAllCourses); 
 //@ts-ignore
 router.put('/courses/:courseId', isAdmin,updateCourse); 
 
