@@ -1,4 +1,4 @@
-import Joi from "joi";
+import Joi from 'joi';
 
 export const registerSchema = Joi.object({
   fullName: Joi.string().required().min(3),
@@ -7,9 +7,8 @@ export const registerSchema = Joi.object({
   phoneNumber: Joi.string()
     .required()
     .pattern(/^[0-9]{10,15}$/)
-    .message("Phone number must be 11 to 15 digits long"),
+    .message('Phone number must be 11 to 15 digits long'),
 });
-
 
 export const loginSchema = Joi.object({
   email: Joi.string().required().email().trim().lowercase(),
@@ -30,25 +29,24 @@ export const forgetPasswordSchema = Joi.object({
 export const resetPasswordSchema = Joi.object({
   password: Joi.string().min(6).required(),
   confirmPassword: Joi.any()
-    .equal(Joi.ref("password"))
+    .equal(Joi.ref('password'))
     .required()
-    .label("Confirm password")
+    .label('Confirm password')
     .messages({
-      "any.only": "{{#label}} does not match",
+      'any.only': '{{#label}} does not match',
     }),
 });
-
 
 const singleAvailabilitySchema = Joi.object({
   dayOfWeek: Joi.string()
     .valid(
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday"
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
     )
     .required(),
   startTime: Joi.string()
@@ -64,7 +62,6 @@ export const createAvailabilitySchema = Joi.object({
   availability: Joi.array().items(singleAvailabilitySchema).required(),
 });
 
-
 export const createBookingSchema = Joi.object({
   tutorId: Joi.string().uuid().required(),
   date: Joi.date().required(),
@@ -76,7 +73,6 @@ export const createBookingSchema = Joi.object({
     .required(),
 });
 
-
 //wallet validation
 export const markUserAsPaidSchema = Joi.object({
   userId: Joi.string().uuid().required(),
@@ -85,14 +81,12 @@ export const markUserAsPaidSchema = Joi.object({
 });
 
 export const withdrawalRequestSchema = Joi.object({
-  
   amount: Joi.number().positive().required(),
   description: Joi.string().allow('', null),
   bankName: Joi.string().required(),
   accountNumber: Joi.string().required(),
   accountName: Joi.string().required(),
 });
-
 
 //user validation
 export const registerUserSchema = Joi.object({
@@ -112,3 +106,20 @@ export const registerUserSchema = Joi.object({
     'string.empty': 'Track is required',
   }),
 });
+
+/**====course input validation starts here */
+export const createCourseSchema = Joi.object({
+  courseName: Joi.string().min(3).max(100).required().messages({
+    'string.base': 'Course name must be a string',
+    'string.empty': 'Course name is required',
+    'string.min': 'Course name must be at least 3 characters',
+    'any.required': 'Course name is required',
+  }),
+  price: Joi.number().positive().required().messages({
+    'number.base': 'Price must be a number',
+    'number.positive': 'Price must be a positive value',
+    'any.required': 'Course price is required',
+  }),
+});
+
+/**======ends here===== */

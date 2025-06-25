@@ -2,7 +2,9 @@ import Agent from './agent';
 import User from './user';
 import AgentWallet from './agentWallet';
 import WalletTransaction from './walletTransaction';
-import Withdrawal from './withdrawal'; // ✅ Add this
+import Withdrawal from './withdrawal'; 
+import Course from './Course';
+import Admin from './admin';
 
 Agent.hasMany(User, { foreignKey: 'agentId', as: 'Users' });
 User.belongsTo(Agent, { foreignKey: 'agentId', as: 'Agent' });
@@ -19,4 +21,23 @@ WalletTransaction.belongsTo(Agent, { foreignKey: 'agentId' });
 Agent.hasMany(Withdrawal, { foreignKey: 'agentId' });
 Withdrawal.belongsTo(Agent, { foreignKey: 'agentId' });
 
-export { Agent, User, AgentWallet, WalletTransaction, Withdrawal };
+//course
+Admin.hasMany(Course, {
+  foreignKey: 'createdBy',
+  as: 'courses',
+});
+
+Course.belongsTo(Admin, {
+  foreignKey: 'createdBy',
+  as: 'creator',
+});
+
+export {
+  Agent,
+  User,
+  AgentWallet,
+  WalletTransaction,
+  Withdrawal,
+  Admin,
+  Course,
+};
