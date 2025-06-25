@@ -7,6 +7,7 @@ import {
   login,
   getAgentDashboard,
   updateAgentProfilePicture,
+  getAllAgentsAndUsers,
 } from '../controllers/agentController';
 import { upload } from '../config/multer';
 import { isAgent } from '../middlewares/isAgent';
@@ -34,5 +35,8 @@ router.patch(
   upload.single('profileImage'),
   updateAgentProfilePicture,
 );
+
+//@ts-ignore
+router.get('/all-agents-users', getAllAgentsAndUsers);
 
 export default router;
