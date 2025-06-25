@@ -198,3 +198,65 @@ export const getAgentWithdrawals = async (req: Request, res: Response) => {
     });
   }
 };
+
+//pay agent
+export const payAgent = async (req: Request, res: Response) => {
+  const { agentId, amount } = req.body;
+
+  // Basic input validation
+  if (!agentId || !amount || isNaN(amount)) {
+    return res.status(400).json({
+      message: 'agentId and a valid numeric amount are required',
+    });
+  }
+
+  try {
+    await sequelize.transaction(async (t) => {
+      // 1. Check if the agent exists
+      const agent = await Agent.findByPk(agentId, { transaction: t });
+      if (!agent) {
+        throw new Error('Agent not found');
+      }
+
+      // 2. Get the agent's wallet
+      const wallet = await AgentWallet.findOne({
+        where: { agentId },
+        transaction: t,
+      });
+
+      if (!wallet) {
+        throw new Error('Agent wallet not found');
+      }
+
+      if (wallet.balance < Number(amount)) {
+        throw new Error('Insufficient wallet balance for this transaction');
+      }
+
+      // 3. Deduct the amount
+      wallet.balance -= Number(amount);
+      await wallet.save({ transaction: t });
+
+      // 4. Log transaction as debit
+      await WalletTransaction.create(
+        {
+          agentId,
+          type: 'debit',
+          amount: Number(amount),
+          description: `Manual debit by admin from agent ${agent.fullName}`,
+        },
+        { transaction: t },
+      );
+
+      return res.status(200).json({
+        message: 'Agent wallet debited successfully',
+        walletBalance: wallet.balance,
+      });
+    });
+  } catch (err: any) {
+    console.error('Error debiting agent:', err);
+    return res.status(500).json({
+      message: 'Error debiting agent wallet',
+      error: err.message,
+    });
+  }
+};
