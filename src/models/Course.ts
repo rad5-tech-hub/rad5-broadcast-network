@@ -6,6 +6,7 @@ class Course extends Model {
   public courseName!: string;
   public price!: number;
   public createdBy!: string;
+  public courseDuration!: string;
 }
 
 Course.init(
@@ -21,6 +22,10 @@ Course.init(
     },
     price: {
       type: DataTypes.FLOAT,
+      allowNull: false,
+    },
+    courseDuration: {
+      type: DataTypes.STRING,
       allowNull: false,
     },
     createdBy: {

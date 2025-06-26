@@ -145,14 +145,16 @@ export const login = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-//verify email
+// verify email
 export const verifyAgentEmail = async (req: Request, res: Response) => {
   const { token } = req.query;
+
   if (!token || typeof token !== 'string') {
     return res.status(400).json({ message: 'Invalid verification token' });
   }
 
   const agent = await Agent.findOne({ where: { verificationToken: token } });
+
   if (!agent) {
     return res.status(400).json({ message: 'Invalid or expired token' });
   }
@@ -161,31 +163,33 @@ export const verifyAgentEmail = async (req: Request, res: Response) => {
   agent.verificationToken = null;
   await agent.save();
 
+  const redirectURL = `${process.env.FRONTEND_BASE_URL}/signin`;
+
   return res.status(200).send(`
-  <html>
-    <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f5f5f5;">
-      <div style="background: white; display: inline-block; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-        <h2 style="color: #28a745;">✅ Email Verified Successfully!</h2>
-        <p style="font-size: 16px; color: #333;">Thank you for verifying your email. You can now log in to your account.</p>
-        <button 
-          onclick="window.location.href='${process.env.FRONTEND_BASE_URL}/signin;" 
-          style="
-            margin-top: 20px;
-            padding: 10px 20px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-          "
-        >
-          Login Now
-        </button>
-      </div>
-    </body>
-  </html>
-`);
+    <html>
+      <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f5f5f5;">
+        <div style="background: white; display: inline-block; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+          <h2 style="color: #28a745;">✅ Email Verified Successfully!</h2>
+          <p style="font-size: 16px; color: #333;">Thank you for verifying your email. You can now log in to your account.</p>
+          <button 
+            onclick="window.location.href='${redirectURL}'" 
+            style="
+              margin-top: 20px;
+              padding: 10px 20px;
+              background-color: #28a745;
+              color: white;
+              border: none;
+              border-radius: 5px;
+              font-size: 16px;
+              cursor: pointer;
+            "
+          >
+            Login Now
+          </button>
+        </div>
+      </body>
+    </html>
+  `);
 };
 
 //forget password
