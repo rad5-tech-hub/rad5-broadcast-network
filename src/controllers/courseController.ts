@@ -12,12 +12,13 @@ export const createCourse = async (req: Request, res: Response) => {
   }
 
   try {
-    const { courseName, price } = req.body;
+    const { courseName, price, courseDuration } = req.body;
     const { id: adminId } = (req as any).user; 
 
     const course = await Course.create({
       courseName,
       price,
+      courseDuration,
       createdBy: adminId,
     });
 
@@ -44,7 +45,7 @@ export const getAllCourses = async (req: Request, res: Response) => {
 export const updateCourse = async (req: Request, res: Response) => {
   try {
     const { courseId } = req.params;
-    const { courseName, price } = req.body;
+    const { courseName, price, courseDuration } = req.body;
 
     const course = await Course.findByPk(courseId);
     if (!course) {
@@ -53,6 +54,7 @@ export const updateCourse = async (req: Request, res: Response) => {
 
     course.courseName = courseName || course.courseName;
     course.price = price || course.price;
+    course.courseDuration = courseDuration || course.courseDuration;
 
     await course.save();
 
