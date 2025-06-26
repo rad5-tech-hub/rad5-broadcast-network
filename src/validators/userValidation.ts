@@ -107,6 +107,8 @@ export const registerUserSchema = Joi.object({
   }),
 });
 
+
+
 /**====course input validation starts here */
 export const createCourseSchema = Joi.object({
   courseName: Joi.string().min(3).max(100).required().messages({
@@ -120,6 +122,12 @@ export const createCourseSchema = Joi.object({
     'number.positive': 'Price must be a positive value',
     'any.required': 'Course price is required',
   }),
+  courseDuration: Joi.string().min(2).max(50).required().messages({
+    'string.base': 'Course duration must be a string',
+    'string.empty': 'Course duration is required',
+    'string.min': 'Course duration must be at least 2 characters',
+    'any.required': 'Course duration is required',
+  }),
 });
-
 /**======ends here===== */
+
