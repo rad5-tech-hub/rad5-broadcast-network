@@ -1,4 +1,6 @@
 import { sendEmail } from './sendEmail';
+import dotenv from 'dotenv'
+dotenv.config()
 
 export const sendPasswordResetEmail = async (email: string, token: string) => {
   const resetUrl = `${process.env.FRONTEND_BASE_URL}/reset-password?token=${token}`;
