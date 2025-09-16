@@ -51,6 +51,7 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
         await wallet.save({ transaction: t });
       }
 
+      
       // 4. Log the wallet transaction
       await WalletTransaction.create(
         {
@@ -59,7 +60,7 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
           amount: commission,
           description: `Commission (${
             commissionRate * 100
-          }%) from payment for user ${user.fullName}`,
+          }%) from payment of ₦${amountPaid} by user ${user.fullName}`,
         },
         { transaction: t },
       );
