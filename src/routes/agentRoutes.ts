@@ -8,6 +8,7 @@ import {
   getAgentDashboard,
   updateAgentProfilePicture,
   getAllAgentsAndUsers,
+  resendVerificationEmailAgent,
 } from '../controllers/agentController';
 import { upload } from '../config/multer';
 import { isAgent } from '../middlewares/isAgent';
@@ -38,5 +39,8 @@ router.patch(
 
 //@ts-ignore
 router.get('/all-agents-users', getAllAgentsAndUsers);
+//@ts-ignore
+router.post('/resend-verification', resendVerificationEmailAgent);
+
 
 export default router;
