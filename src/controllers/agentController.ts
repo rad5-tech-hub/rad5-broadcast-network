@@ -8,7 +8,7 @@ import {
   forgetPasswordSchema,
   resetPasswordSchema,
 } from '../validators/userValidation';
-import dotenv from 'dotenv'
+import dotenv from 'dotenv';
 dotenv.config();
 import { sendVerificationEmailAgent } from '../utils/sendVerifyEmail';
 import { sendPasswordResetEmail } from '../utils/sendPasswordResetEmail';
@@ -47,7 +47,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     // Generate full referral link using frontend base URL
     const referralLink = `${process.env.BACKEND_BASE_URL}/${sharableLink}`;
-
 
     // Get uploaded image URL from Cloudinary
     const profileImageUrl = req.file?.path;
@@ -318,7 +317,6 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
       order: [['createdAt', 'DESC']],
     });
 
-
     //get all agent withdrawals
     const withdrawals = await Withdrawal.findAll({
       where: {
@@ -405,7 +403,6 @@ export const updateAgentProfilePicture = async (
     });
   }
 };
-
 
 //get all most recent agents and users
 export const getAllAgentsAndUsers = async (req: Request, res: Response) => {
