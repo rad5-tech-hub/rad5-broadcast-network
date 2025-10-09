@@ -168,14 +168,14 @@ export const verifyAgentEmail = async (req: Request, res: Response) => {
     <html>
       <body style="font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f5f5f5;">
         <div style="background: white; display: inline-block; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-          <h2 style="color: #28a745;">✅ Email Verified Successfully!</h2>
+          <h2 style="color: rgb(29,78,216);">Email Verified Successfully!</h2>
           <p style="font-size: 16px; color: #333;">Thank you for verifying your email. You can now log in to your account.</p>
           <button 
             onclick="window.location.href='${redirectURL}'" 
             style="
               margin-top: 20px;
               padding: 10px 20px;
-              background-color: #28a745;
+              background-color: rgb(29,78,216);
               color: white;
               border: none;
               border-radius: 5px;
@@ -435,5 +435,42 @@ export const getAllAgentsAndUsers = async (req: Request, res: Response) => {
       message: 'Failed to fetch agents and users',
       error: error.message,
     });
+  }
+};
+
+// resend-verification
+export const resendVerificationEmailAgent = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const { email } = req.body;
+
+    // Check if agent exists and is not yet verified
+    const agent = await Agent.findOne({ where: { email } });
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found.' });
+    }
+
+    if (agent.isVerified) {
+      return res.status(400).json({ message: 'Email already verified.' });
+    }
+
+    // Generate new verification token (valid for 1 hour)
+    const token = jwt.sign(
+      { id: agent.id, email: agent.email },
+      process.env.JWT_SECRET!,
+      { expiresIn: '1h' },
+    );
+
+    // Reuse your existing email sender
+    await sendVerificationEmailAgent(agent.email, token);
+
+    return res.status(200).json({ message: 'New verification email sent.' });
+  } catch (error: any) {
+    console.error('Error resending verification email:', error);
+    return res
+      .status(500)
+      .json({ message: 'Failed to resend verification email.' });
   }
 };
