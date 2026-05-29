@@ -2,8 +2,7 @@
 import { Request, Response } from 'express';
 import Course from '../models/Course';
 import { createCourseSchema } from '../validators/userValidation';
-
-
+import { normalizeParam } from '../utils/normalizeParam';
 
 export const createCourse = async (req: Request, res: Response) => {
   const { error } = createCourseSchema.validate(req.body);
@@ -13,7 +12,7 @@ export const createCourse = async (req: Request, res: Response) => {
 
   try {
     const { courseName, price, courseDuration } = req.body;
-    const { id: adminId } = (req as any).user; 
+    const { id: adminId } = (req as any).user;
 
     const course = await Course.create({
       courseName,
@@ -30,7 +29,6 @@ export const createCourse = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getAllCourses = async (req: Request, res: Response) => {
   try {
     const courses = await Course.findAll();
@@ -45,9 +43,14 @@ export const getAllCourses = async (req: Request, res: Response) => {
 export const updateCourse = async (req: Request, res: Response) => {
   try {
     const { courseId } = req.params;
+    const normalizedCourseId = normalizeParam(courseId);
+
+    if (!normalizedCourseId) {
+      return res.status(400).json({ message: 'Course id is required' });
+    }
     const { courseName, price, courseDuration } = req.body;
 
-    const course = await Course.findByPk(courseId);
+    const course = await Course.findByPk(normalizedCourseId);
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }

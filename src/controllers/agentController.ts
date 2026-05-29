@@ -17,6 +17,7 @@ import { Op } from 'sequelize';
 import { generateShareableLink } from '../utils/slug';
 import { toSentenceCase } from '../utils/textHelpers';
 import Withdrawal from '../models/withdrawal';
+import { normalizeParam } from '../utils/normalizeParam';
 import User from '../models/user';
 import WalletTransaction from '../models/walletTransaction';
 
@@ -68,13 +69,13 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const payLoad = { id: newUser.id };
     const generateVerificationToken = jwt.sign(
       payLoad,
-      process.env.SECRET as string,
+      process.env.JWT_SECRET as string,
       { expiresIn: '1h' },
     );
 
     await newUser.update({ verificationToken: generateVerificationToken });
 
-    await sendVerificationEmailAgent(newUser.email, generateVerificationToken);
+    await sendVerificationEmailAgent(email, generateVerificationToken);
 
     //exclude sensitive data
     const agentData = newUser.get({ plain: true });
@@ -240,7 +241,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
     //update user
     user.password = await bcrypt.hash(password, 10);
-    (user.resetToken = null), (user.resetTokenExpires = null);
+    ((user.resetToken = null), (user.resetTokenExpires = null));
     await user.save();
     return res.status(200).json({ message: 'Password reset successful' });
   } catch (error) {
@@ -251,6 +252,11 @@ export const resetPassword = async (req: Request, res: Response) => {
 export const getAgentDashboard = async (req: Request, res: Response) => {
   try {
     const { id: agentId } = (req as any).user;
+    const normalizedAgentId = normalizeParam(agentId);
+
+    if (!normalizedAgentId) {
+      return res.status(400).json({ message: 'Agent id is required' });
+    }
 
     const {
       startDate,
@@ -282,7 +288,7 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
     const { count: txCount, rows: transactions } =
       await WalletTransaction.findAndCountAll({
         where: {
-          agentId,
+          agentId: normalizedAgentId,
           type: 'credit',
           ...dateFilter,
         },
@@ -298,13 +304,13 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
 
     const totalReferrals = await User.count({
       where: {
-        agentId,
+        agentId: normalizedAgentId,
       },
     });
 
     //get all user under agent
     const referredUsers = await User.findAll({
-      where: { agentId },
+      where: { agentId: normalizedAgentId },
       attributes: [
         'id',
         'fullName',
@@ -320,7 +326,7 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
     //get all agent withdrawals
     const withdrawals = await Withdrawal.findAll({
       where: {
-        agentId,
+        agentId: normalizedAgentId,
         status: 'approved',
       },
       attributes: ['amount'],
@@ -332,7 +338,7 @@ export const getAgentDashboard = async (req: Request, res: Response) => {
     );
 
     // ✅ Fetch full agent info
-    const agent = await Agent.findByPk(agentId, {
+    const agent = await Agent.findByPk(normalizedAgentId, {
       attributes: {
         exclude: ['password'], // make sure to exclude password or sensitive fields
       },
@@ -371,6 +377,12 @@ export const updateAgentProfilePicture = async (
   res: Response,
 ): Promise<void> => {
   const { id: agentId } = (req as any).user;
+  const normalizedAgentId = normalizeParam(agentId);
+
+  if (!normalizedAgentId) {
+    res.status(400).json({ message: 'Agent id is required' });
+    return;
+  }
 
   try {
     const profileImageUrl = req.file?.path;
@@ -380,7 +392,7 @@ export const updateAgentProfilePicture = async (
       return;
     }
 
-    const agent = await Agent.findByPk(agentId);
+    const agent = await Agent.findByPk(normalizedAgentId);
     if (!agent) {
       res.status(404).json({ message: 'Agent not found' });
       return;
