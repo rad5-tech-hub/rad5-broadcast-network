@@ -6,6 +6,7 @@ import Agent from '../models/agent';
 import { markUserAsPaidSchema } from '../validators/userValidation';
 import { sendAgentFundedEmail } from '../utils/sendAgentFundedEmail';
 import sequelize from '../database/db';
+import { normalizeParam } from '../utils/normalizeParam';
 
 export const markUserAsPaid = async (req: Request, res: Response) => {
   const { userId, amountPaid, commissionRate = 0.1 } = req.body;
@@ -51,7 +52,6 @@ export const markUserAsPaid = async (req: Request, res: Response) => {
         await wallet.save({ transaction: t });
       }
 
-      
       // 4. Log the wallet transaction
       await WalletTransaction.create(
         {
@@ -104,13 +104,18 @@ export const getAgentWalletAndTransactions = async (
   next: NextFunction,
 ) => {
   const { agentId } = req.params;
+  const normalizedAgentId = normalizeParam(agentId);
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 10;
   const offset = (page - 1) * limit;
 
+  if (!normalizedAgentId) {
+    return res.status(400).json({ message: 'Agent id is required' });
+  }
+
   try {
     // 1. Confirm agent exists (optional, for better error handling)
-    const agent = await Agent.findByPk(agentId);
+    const agent = await Agent.findByPk(normalizedAgentId);
     if (!agent) {
       return res.status(404).json({ message: 'Agent not found' });
     }

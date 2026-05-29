@@ -10,6 +10,7 @@ import User from '../models/user';
 import WalletTransaction from '../models/walletTransaction';
 import Withdrawal from '../models/withdrawal';
 import { Op } from 'sequelize';
+import { normalizeParam } from '../utils/normalizeParam';
 
 // admin/create
 export const createAdmin = async (req: Request, res: Response) => {
@@ -136,9 +137,14 @@ export const getAllAgents = async (req: Request, res: Response) => {
 // };
 export const toggleAgentStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
+  const agentId = normalizeParam(id);
+
+  if (!agentId) {
+    return res.status(400).json({ message: 'Agent id is required' });
+  }
 
   try {
-    const agent = await Agent.findByPk(id);
+    const agent = await Agent.findByPk(agentId);
 
     if (!agent) {
       return res.status(404).json({ message: 'Agent not found' });
@@ -215,7 +221,14 @@ export const getAdminDashboard = async (req: Request, res: Response) => {
         {
           model: User,
           as: 'Users', // or the alias if you used one
-          attributes: ['id', 'fullName', 'email', 'phoneNumber', 'track' , 'paymentStatus'],
+          attributes: [
+            'id',
+            'fullName',
+            'email',
+            'phoneNumber',
+            'track',
+            'paymentStatus',
+          ],
         },
       ],
     });
@@ -268,14 +281,19 @@ export const getAdminDashboard = async (req: Request, res: Response) => {
 //delete agent
 export const deleteAgentByAdmin = async (req: Request, res: Response) => {
   const { id } = req.params;
+  const agentId = normalizeParam(id);
+
+  if (!agentId) {
+    return res.status(400).json({ message: 'Agent id is required' });
+  }
 
   try {
-    const agent = await Agent.findByPk(id);
+    const agent = await Agent.findByPk(agentId);
     if (!agent) {
       return res.status(404).json({ message: 'Agent not found' });
     }
 
-    await agent.destroy()
+    await agent.destroy();
 
     return res.status(200).json({ message: 'Agent deleted successfully' });
   } catch (error: any) {

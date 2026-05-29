@@ -8,19 +8,26 @@ import { withdrawalRequestSchema } from '../validators/userValidation';
 import { sendAgentNotification } from '../utils/sendAgentNotification'; // helper we'll create
 import { sendWithdrawalEmailToAdmin } from '../utils/sendWithdrawalEmailToAdmin';
 import sequelize from '../database/db';
+import { normalizeParam } from '../utils/normalizeParam';
 
 export const approveOrRejectWithdrawal = async (
   req: Request,
   res: Response,
 ) => {
   const { id } = req.params;
+  const normalizedId = normalizeParam(id);
   const { action } = req.body; // "approve" or "reject"
   const transaction = await sequelize.transaction();
   // Get admin ID from token
   const adminId = (req as any).user.id;
 
+  if (!normalizedId) {
+    await transaction.rollback();
+    return res.status(400).json({ message: 'Withdrawal id is required' });
+  }
+
   try {
-    const withdrawal = await Withdrawal.findByPk(id, { transaction });
+    const withdrawal = await Withdrawal.findByPk(normalizedId, { transaction });
 
     if (!withdrawal) {
       await transaction.rollback();
