@@ -3,6 +3,7 @@ import User from '../models/user';
 import Agent from '../models/agent';
 import { toSentenceCase } from '../utils/textHelpers';
 import { sendNewReferralNotification } from '../utils/sendNewReferralNotification';
+import { normalizeParam } from '../utils/normalizeParam';
 import dotenv from 'dotenv';
 dotenv.config();
 import { registerUserSchema, loginSchema } from '../validators/userValidation';
@@ -44,7 +45,7 @@ export const registerUserUnderAgent = async (req: Request, res: Response) => {
       phoneNumber,
       track,
       agentId: agent.id,
-      paymentStatus: 'unpaid', 
+      paymentStatus: 'unpaid',
     });
 
     await sendNewReferralNotification(agent, {
@@ -69,13 +70,18 @@ export const registerUserUnderAgent = async (req: Request, res: Response) => {
 
 export const getUsersUnderAgent = async (req: Request, res: Response) => {
   const { agentId } = req.params;
+  const normalizedAgentId = normalizeParam(agentId);
+
+  if (!normalizedAgentId) {
+    return res.status(400).json({ message: 'Agent id is required' });
+  }
 
   try {
-    const agent: any = await Agent.findByPk(agentId, {
+    const agent: any = await Agent.findByPk(normalizedAgentId, {
       include: [
         {
           model: User,
-          as: 'Users', // this alias must match the one used in association if used
+          as: 'Users',
         },
       ],
     });
