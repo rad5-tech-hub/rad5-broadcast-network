@@ -1,5 +1,4 @@
-// adminController.ts
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import Admin from '../models/admin';
 import Agent from '../models/agent';
 import bcrypt from 'bcryptjs';
@@ -9,21 +8,23 @@ import { sendTutorRejectionEmail } from '../utils/sendTutorRejectionEmail';
 import User from '../models/user';
 import WalletTransaction from '../models/walletTransaction';
 import Withdrawal from '../models/withdrawal';
+import { AuditTrail } from '../models';
 import { Op } from 'sequelize';
 import { normalizeParam } from '../utils/normalizeParam';
+import { ValidationError, BaseError } from '../utils/customError';
+import { recordAuditTrail } from '../utils/auditTrail';
 
 // admin/create
-export const createAdmin = async (req: Request, res: Response) => {
+export const createAdmin = async (req: Request, res: Response, next: NextFunction) => {
   const { fullName, email, password } = req.body;
-
   if (!fullName || !email || !password) {
-    return res.status(400).json({ message: 'All fields are required' });
+    return next(new ValidationError('All fields are required'));
   }
 
   try {
     const existing = await Admin.findOne({ where: { email } });
     if (existing) {
-      return res.status(409).json({ message: 'Admin already exists' });
+      return next(new BaseError('Admin already exists', 409));
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -35,11 +36,18 @@ export const createAdmin = async (req: Request, res: Response) => {
       role: 'admin',
     });
 
+    await recordAuditTrail({
+      // Assuming an admin is logged in to create another admin
+      email: admin.email,
+      action: `A new admin was created by ${req.user.email}`,
+      entityType: 'Admin',
+      entityId: admin.id,
+      details: `NewAdmin: ${admin.fullName}`,
+    }, next);
+
     return res.status(201).json({ message: 'Admin created', admin });
   } catch (err: any) {
-    return res
-      .status(500)
-      .json({ message: 'Error creating admin', error: err.message });
+    next(new BaseError('Error creating admin: ' + err.message));
   }
 };
 
@@ -63,7 +71,7 @@ export const loginAdmin = async (req: Request, res: Response) => {
     }
 
     const token = jwt.sign(
-      { id: admin.id, role: 'admin' },
+      { id: admin.id, role: 'admin', email: admin.email },
       process.env.JWT_SECRET as string,
       {
         expiresIn: '1d',
@@ -181,6 +189,22 @@ export const getUsersByAgent = async (req: Request, res: Response) => {
 };
 
 //admin dashboard
+export const getAuditTrail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const auditTrail = await AuditTrail.findAll({
+      order: [['createdAt', 'DESC']],
+      limit: 50,
+    });
+
+    return res.status(200).json({
+      message: 'Audit trail retrieved successfully',
+      data: auditTrail,
+    });
+  } catch (error: any) {
+    next(new BaseError('Failed to retrieve audit trail: ' + error.message));
+  }
+};
+
 export const getAdminDashboard = async (req: Request, res: Response) => {
   try {
     const { startDate, endDate } = req.query as {

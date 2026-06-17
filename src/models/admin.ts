@@ -7,6 +7,7 @@ class Admin extends Model {
   public email!: string;
   public password!: string;
   public role!: string;
+  public deletedAt?: Date;
 }
 
 Admin.init(
@@ -40,6 +41,7 @@ Admin.init(
     sequelize,
     tableName: "Admin",
     modelName: "Admin",
+    paranoid: true,
   }
 );
 

@@ -9,6 +9,7 @@ import withdrawalRoutes from './routes/withdrawal';
 import './models/index';
 import referralRoutes from './routes/referralRoutes';
 import courseRoutes from './routes/course';
+import globalErrorHandler from './middlewares/errorHandler';
 
 const app = express();
 
@@ -37,5 +38,6 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/withdrawal', withdrawalRoutes);
 app.use('/api/v1/course', courseRoutes);
 app.use('/', referralRoutes);
+app.use(globalErrorHandler);
 
 export default app;

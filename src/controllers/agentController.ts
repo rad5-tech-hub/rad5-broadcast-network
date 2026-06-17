@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import Agent from '../models/agent';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -20,13 +20,15 @@ import Withdrawal from '../models/withdrawal';
 import { normalizeParam } from '../utils/normalizeParam';
 import User from '../models/user';
 import WalletTransaction from '../models/walletTransaction';
+import { ValidationError, BaseError } from '../utils/customError';
+import { recordAuditTrail } from '../utils/auditTrail';
 
 // register agent
-export const register = async (req: Request, res: Response): Promise<void> => {
+export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   // Validate user input
   const { error } = registerSchema.validate(req.body);
   if (error) {
-    res.status(400).json({ error: error.details[0].message });
+    next(new ValidationError(error.details[0].message));
     return;
   }
 
@@ -36,8 +38,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     // Check if agent already exists
     const existingUser = await Agent.findOne({ where: { email } });
     if (existingUser) {
-      res.status(400).json({ message: 'Agent already exists' });
-      return;
+      return next(new ValidationError('Agent already exists'));
     }
 
     // Hash password
@@ -77,6 +78,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     await sendVerificationEmailAgent(email, generateVerificationToken);
 
+    // Record audit trail
+    await recordAuditTrail({
+      action: 'AGENT REGISTERED',
+      entityType: 'Agent',
+      entityId: newUser.id,
+      details: JSON.stringify({ agentEmail: newUser.email }),
+    }, next);
+
     //exclude sensitive data
     const agentData = newUser.get({ plain: true });
     delete agentData.password;
@@ -89,8 +98,8 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         referralLink, // Include full link in response
       },
     });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error', details: error });
+  } catch (error: any) {
+    next(new BaseError('Server error: ' + error.message));
   }
 };
 
@@ -133,6 +142,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     //generate token for user
     const payLoad = {
       id: user.id,
+      email: user.email,
+      role: 'agent',
     };
     const token = jwt.sign(payLoad, process.env.SECRET as string);
     res
@@ -251,7 +262,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 
 export const getAgentDashboard = async (req: Request, res: Response) => {
   try {
-    const { id: agentId } = (req as any).user;
+    const { id: agentId } = req.user;
     const normalizedAgentId = normalizeParam(agentId);
 
     if (!normalizedAgentId) {
@@ -376,7 +387,7 @@ export const updateAgentProfilePicture = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const { id: agentId } = (req as any).user;
+  const { id: agentId } = req.user;
   const normalizedAgentId = normalizeParam(agentId);
 
   if (!normalizedAgentId) {

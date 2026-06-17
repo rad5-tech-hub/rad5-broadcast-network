@@ -9,6 +9,7 @@ class User extends Model {
   public track!: string;
   public agentId!: string;
   public paymentStatus!: string;
+  public deletedAt?: Date;
 }
 
 User.init(
@@ -57,6 +58,7 @@ User.init(
     sequelize,
     tableName: "Users",
     modelName: "User",
+    paranoid: true,
   }
 );
 

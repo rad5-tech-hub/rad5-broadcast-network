@@ -5,6 +5,7 @@ import WalletTransaction from './walletTransaction';
 import Withdrawal from './withdrawal'; 
 import Course from './Course';
 import Admin from './admin';
+import AuditTrail from './AuditTrail';
 
 Agent.hasMany(User, { foreignKey: 'agentId', as: 'Users' });
 User.belongsTo(Agent, { foreignKey: 'agentId', as: 'Agent' });
@@ -32,12 +33,4 @@ Course.belongsTo(Admin, {
   as: 'creator',
 });
 
-export {
-  Agent,
-  User,
-  AgentWallet,
-  WalletTransaction,
-  Withdrawal,
-  Admin,
-  Course,
-};
+export { Admin, Agent, AgentWallet, Course, User, WalletTransaction, Withdrawal, AuditTrail };
