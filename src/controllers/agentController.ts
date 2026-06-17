@@ -14,6 +14,7 @@ import { sendVerificationEmailAgent } from '../utils/sendVerifyEmail';
 import { sendPasswordResetEmail } from '../utils/sendPasswordResetEmail';
 import crypto from 'crypto';
 import { Op } from 'sequelize';
+import sequelize from '../database/db';
 import { generateShareableLink } from '../utils/slug';
 import { toSentenceCase } from '../utils/textHelpers';
 import Withdrawal from '../models/withdrawal';
@@ -35,68 +36,56 @@ export const register = async (req: Request, res: Response, next: NextFunction):
   const { fullName, email, password, phoneNumber } = req.body;
 
   try {
-    // Check if agent already exists
     const existingUser = await Agent.findOne({ where: { email } });
     if (existingUser) {
       return next(new ValidationError('Agent already exists'));
     }
 
-    // Hash password
     const hashedPassword = bcrypt.hashSync(password, 10);
-
-    // Generate shareable link
     const sharableLink = generateShareableLink(fullName, phoneNumber);
-
-    // Generate full referral link using frontend base URL
     const referralLink = `${process.env.BACKEND_BASE_URL}/${sharableLink}`;
-
-    // Get uploaded image URL from Cloudinary
     const profileImageUrl = req.file?.path;
-
-    // Save fullName in sentence case
     const formattedName = toSentenceCase(fullName);
 
-    // Create new agent
-    const newUser = await Agent.create({
-      fullName: formattedName,
-      email,
-      password: hashedPassword,
-      phoneNumber,
-      sharableLink,
-      profileImage: profileImageUrl,
+    const result = await sequelize.transaction(async (t) => {
+      const newUser = await Agent.create({
+        fullName: formattedName,
+        email,
+        password: hashedPassword,
+        phoneNumber,
+        sharableLink,
+        profileImage: profileImageUrl,
+      }, { transaction: t });
+
+      const payLoad = { id: newUser.id };
+      const generateVerificationToken = jwt.sign(
+        payLoad,
+        process.env.JWT_SECRET as string,
+        { expiresIn: '1h' },
+      );
+
+      await newUser.update({ verificationToken: generateVerificationToken }, { transaction: t });
+
+      await sendVerificationEmailAgent(email, generateVerificationToken);
+
+      return { newUser, generateVerificationToken };
     });
 
-    // Generate verification token
-    const payLoad = { id: newUser.id };
-    const generateVerificationToken = jwt.sign(
-      payLoad,
-      process.env.JWT_SECRET as string,
-      { expiresIn: '1h' },
-    );
-
-    await newUser.update({ verificationToken: generateVerificationToken });
-
-    await sendVerificationEmailAgent(email, generateVerificationToken);
-
-    // Record audit trail
     await recordAuditTrail({
+      email,
       action: 'AGENT REGISTERED',
       entityType: 'Agent',
-      entityId: newUser.id,
-      details: JSON.stringify({ agentEmail: newUser.email }),
+      entityId: result.newUser.id,
+      details: `AgentEmail: ${result.newUser.email}, Name: ${result.newUser.fullName}, PhoneNumber: ${result.newUser.phoneNumber}`,
     }, next);
 
-    //exclude sensitive data
-    const agentData = newUser.get({ plain: true });
+    const agentData = result.newUser.get({ plain: true });
     delete agentData.password;
     delete agentData.verificationToken;
 
     res.status(200).json({
       message: 'Agent registered successfully',
-      data: {
-        agentData,
-        referralLink, // Include full link in response
-      },
+      data: { agentData, referralLink },
     });
   } catch (error: any) {
     next(new BaseError('Server error: ' + error.message));
@@ -427,30 +416,35 @@ export const updateAgentProfilePicture = async (
   }
 };
 
-//get all most recent agents and users
-export const getAllAgentsAndUsers = async (req: Request, res: Response) => {
+export const getAllAgents = async (req: Request, res: Response) => {
   try {
+
+    const limit = Number(process.env.PAGE_LIMIT) || 50;
+  
+    const cursor = req.query.cursor as string | undefined;
+
+    const whereClause: any = {};
+    if (cursor) {
+      whereClause.createdAt = { [Op.lt]: new Date(cursor) };
+    }
+
     const agents = await Agent.findAll({
       attributes: ['id', 'fullName', 'email', 'phoneNumber', 'createdAt'],
-      order: [['createdAt', 'DESC']],
+      where: whereClause,
+      order: [['createdAt', 'DESC'], ['id', 'DESC']],
+      limit: limit + 1,
     });
 
-    const users = await User.findAll({
-      attributes: [
-        'id',
-        'fullName',
-        'email',
-        'phoneNumber',
-        'track',
-        'createdAt',
-      ],
-      order: [['createdAt', 'DESC']],
-    });
+    const hasMore = agents.length > limit;
+    if (hasMore) agents.pop();
+
+    const lastAgent = agents[agents.length - 1];
+    const nextCursor = hasMore && lastAgent ? lastAgent.createdAt!.toISOString() : undefined;
 
     return res.status(200).json({
-      message: 'Agents and users retrieved successfully',
+      message: 'Agents retrieved successfully',
+      nextCursor,
       agents,
-      users,
     });
   } catch (error: any) {
     console.error('Error fetching agents and users:', error);

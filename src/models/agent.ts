@@ -16,6 +16,7 @@ class Agent extends Model {
   public resetToken!: string | null;
   public resetTokenExpires!: Date | null;
   public deletedAt?: Date;
+  public createdAt?: Date
 }
 
 Agent.init(

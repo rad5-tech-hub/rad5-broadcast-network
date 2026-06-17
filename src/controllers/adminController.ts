@@ -205,7 +205,7 @@ export const getAuditTrail = async (req: Request, res: Response, next: NextFunct
   }
 };
 
-export const getAdminDashboard = async (req: Request, res: Response) => {
+export const getAdminDashboard = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { startDate, endDate } = req.query as {
       startDate?: string;
@@ -237,43 +237,14 @@ export const getAdminDashboard = async (req: Request, res: Response) => {
       0,
     );
 
-    // Total agents
+    const totalAgents = await Agent.count({ where: { ...dateFilter } });
+    console.log("agents",totalAgents)
+    console.log("dateFilter",dateFilter);
+    console.log("totalAgentEarnings",totalAgentEarnings)
+    const totalUsers = await User.count({ where: { ...dateFilter } });
 
-    const agents = await Agent.findAll({
-      attributes: ['id', 'fullname', 'email', 'phoneNumber'],
-      include: [
-        {
-          model: User,
-          as: 'Users', // or the alias if you used one
-          attributes: [
-            'id',
-            'fullName',
-            'email',
-            'phoneNumber',
-            'track',
-            'paymentStatus',
-          ],
-        },
-      ],
-    });
-
-    const totalAgents = agents.length;
-    // const totalAgents = await Agent.count({});
-
-    // Total users
-    const users = await User.findAll({
-      attributes: ['id', 'fullname', 'email', 'phoneNumber', 'track'],
-    });
-
-    const totalUsers = users.length;
-    //const totalUsers = await User.count();
-
-    // Total withdrawals (approved only)
     const withdrawals = await Withdrawal.findAll({
-      where: {
-        status: 'approved',
-        ...dateFilter,
-      },
+      where: { status: 'approved', ...dateFilter },
       attributes: ['amount'],
     });
 
@@ -283,22 +254,13 @@ export const getAdminDashboard = async (req: Request, res: Response) => {
     );
 
     return res.status(200).json({
-      stats: {
-        totalAgentEarnings,
-        totalAgents,
-        totalWithdrawals,
-        totalUsers,
-        agents,
-        users,
-      },
-      message: 'Admin dashboard data retrieved successfully',
+      totalAgentEarnings,
+      totalAgents,
+      totalWithdrawals,
+      totalUsers,
     });
   } catch (error: any) {
-    console.error('Admin dashboard error:', error);
-    return res.status(500).json({
-      message: 'Failed to retrieve admin dashboard',
-      error: error.message,
-    });
+     next(new BaseError('Error creating admin: ' + error.message))
   }
 };
 

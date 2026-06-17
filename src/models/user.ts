@@ -10,6 +10,7 @@ class User extends Model {
   public agentId!: string;
   public paymentStatus!: string;
   public deletedAt?: Date;
+  public createdAt?: Date;
 }
 
 User.init(
@@ -37,11 +38,11 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-   paymentStatus: {
-  type: DataTypes.ENUM('paid', 'unpaid'),
-  defaultValue: 'unpaid',
-  allowNull: false,
-},
+    paymentStatus: {
+      type: DataTypes.ENUM('paid', 'unpaid'),
+      defaultValue: 'unpaid',
+      allowNull: false,
+    },
 
     agentId: {
       type: DataTypes.UUID, // Foreign key to Agent

@@ -7,6 +7,7 @@ import { normalizeParam } from '../utils/normalizeParam';
 import dotenv from 'dotenv';
 dotenv.config();
 import { registerUserSchema, loginSchema } from '../validators/userValidation';
+import { Op } from 'sequelize';
 import { ValidationError, NotFoundError, BaseError } from '../utils/customError';
 import { recordAuditTrail } from '../utils/auditTrail';
 
@@ -110,5 +111,51 @@ export const getUsersUnderAgent = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: 'Failed to fetch users', error: error.message });
+  }
+};
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const limit = Number(process.env.PAGE_LIMIT) || 50;
+    const cursor = req.query.cursor as string | undefined;
+    const search = req.query.search as string | undefined;
+
+    const whereClause: any = {};
+    if (cursor) {
+      whereClause.createdAt = { [Op.lt]: new Date(cursor) };
+    }
+    if (search) {
+      whereClause[Op.or] = [
+        { fullName: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { phoneNumber: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const users = await User.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Agent,
+          as: 'Agent',
+          attributes: ['id', 'fullName'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: limit + 1,
+    });
+
+    const hasMore = users.length > limit;
+    if (hasMore) users.pop();
+
+    const lastUser = users[users.length - 1];
+    const nextCursor = hasMore && lastUser ? lastUser.createdAt!.toISOString() : undefined;
+
+    res.status(200).json({
+      message: 'Users retrieved successfully',
+      users,
+      nextCursor,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Failed to fetch users', error: error.message });
   }
 };
