@@ -12,7 +12,7 @@ export const createCourse = async (req: Request, res: Response) => {
 
   try {
     const { courseName, price, courseDuration } = req.body;
-    const { id: adminId } = (req as any).user;
+    const { id: adminId } = req.user;
 
     const course = await Course.create({
       courseName,

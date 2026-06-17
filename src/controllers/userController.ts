@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import User from '../models/user';
 import Agent from '../models/agent';
 import { toSentenceCase } from '../utils/textHelpers';
@@ -7,14 +7,17 @@ import { normalizeParam } from '../utils/normalizeParam';
 import dotenv from 'dotenv';
 dotenv.config();
 import { registerUserSchema, loginSchema } from '../validators/userValidation';
+import { Op } from 'sequelize';
+import { ValidationError, NotFoundError, BaseError } from '../utils/customError';
+import { recordAuditTrail } from '../utils/auditTrail';
 
-export const registerUserUnderAgent = async (req: Request, res: Response) => {
+export const registerUserUnderAgent = async (req: Request, res: Response, next: NextFunction) => {
   const { linkCode } = req.params;
 
   // Validate user input
   const { error } = registerUserSchema.validate(req.body);
   if (error) {
-    res.status(400).json({ error: error.details[0].message });
+    next(new ValidationError(error.details[0].message));
     return;
   }
   const { fullName, email, phoneNumber, track } = req.body;
@@ -22,19 +25,18 @@ export const registerUserUnderAgent = async (req: Request, res: Response) => {
   try {
     // Check for verified agent
     const agent = await Agent.findOne({
+      attributes: ['id', 'fullName', 'email'],
       where: { sharableLink: linkCode, isVerified: true },
     });
 
     if (!agent) {
-      return res
-        .status(404)
-        .json({ message: 'Invalid or unverified agent link' });
+      return next(new NotFoundError('Invalid or unverified agent link'));
     }
 
     // Prevent duplicate user
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
-      return res.status(409).json({ message: 'User already registered' });
+      return next(new BaseError('User already registered', 409));
     }
 
     const formattedName = toSentenceCase(fullName);
@@ -47,6 +49,15 @@ export const registerUserUnderAgent = async (req: Request, res: Response) => {
       agentId: agent.id,
       paymentStatus: 'unpaid',
     });
+
+    // Record audit trail
+    await recordAuditTrail({
+      email: email,
+      action: `User Registered For ${track} Under Agent: ${agent.fullName}`,
+      entityType: 'User',
+      entityId: newUser.id,
+      details: `UserEmail: ${newUser.email}, AgentEmail:${agent.email}`,
+    }, next);
 
     await sendNewReferralNotification(agent, {
       fullName: formattedName,
@@ -61,10 +72,7 @@ export const registerUserUnderAgent = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Error during registration:', error);
-    return res.status(500).json({
-      message: 'Registration failed. Please try again later.',
-      error: error.message || 'Unexpected error',
-    });
+    next(new BaseError('Registration failed: ' + error.message));
   }
 };
 
@@ -103,5 +111,51 @@ export const getUsersUnderAgent = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ message: 'Failed to fetch users', error: error.message });
+  }
+};
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const limit = Number(process.env.PAGE_LIMIT) || 50;
+    const cursor = req.query.cursor as string | undefined;
+    const search = req.query.search as string | undefined;
+
+    const whereClause: any = {};
+    if (cursor) {
+      whereClause.createdAt = { [Op.lt]: new Date(cursor) };
+    }
+    if (search) {
+      whereClause[Op.or] = [
+        { fullName: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { phoneNumber: { [Op.like]: `%${search}%` } },
+      ];
+    }
+
+    const users = await User.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: Agent,
+          as: 'Agent',
+          attributes: ['id', 'fullName'],
+        },
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: limit + 1,
+    });
+
+    const hasMore = users.length > limit;
+    if (hasMore) users.pop();
+
+    const lastUser = users[users.length - 1];
+    const nextCursor = hasMore && lastUser ? lastUser.createdAt!.toISOString() : undefined;
+
+    res.status(200).json({
+      message: 'Users retrieved successfully',
+      users,
+      nextCursor,
+    });
+  } catch (error: any) {
+    res.status(500).json({ message: 'Failed to fetch users', error: error.message });
   }
 };

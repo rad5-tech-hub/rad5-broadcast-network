@@ -7,11 +7,12 @@ import {
   login,
   getAgentDashboard,
   updateAgentProfilePicture,
-  getAllAgentsAndUsers,
+  getAllAgents,
   resendVerificationEmailAgent,
 } from '../controllers/agentController';
 import { upload } from '../config/multer';
 import { isAgent } from '../middlewares/isAgent';
+import { isAdmin } from "../middlewares/adminAuth";
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ router.patch(
 );
 
 //@ts-ignore
-router.get('/all-agents-users', getAllAgentsAndUsers);
+router.get('/all-agents', isAdmin, getAllAgents);
 //@ts-ignore
 router.post('/resend-verification', resendVerificationEmailAgent);
 

@@ -1,29 +1,30 @@
 // controllers/withdrawalController.ts
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import WalletTransaction from '../models/walletTransaction';
 import Withdrawal from '../models/withdrawal';
 import AgentWallet from '../models/agentWallet';
 import Agent from '../models/agent';
 import { withdrawalRequestSchema } from '../validators/userValidation';
-import { sendAgentNotification } from '../utils/sendAgentNotification'; // helper we'll create
+import { sendAgentNotification } from '../utils/sendAgentNotification';
 import { sendWithdrawalEmailToAdmin } from '../utils/sendWithdrawalEmailToAdmin';
 import sequelize from '../database/db';
 import { normalizeParam } from '../utils/normalizeParam';
+import { ValidationError, NotFoundError, BaseError } from '../utils/customError';
+import { recordAuditTrail } from '../utils/auditTrail';
 
 export const approveOrRejectWithdrawal = async (
   req: Request,
   res: Response,
+  next: NextFunction,
 ) => {
   const { id } = req.params;
   const normalizedId = normalizeParam(id);
   const { action } = req.body; // "approve" or "reject"
   const transaction = await sequelize.transaction();
-  // Get admin ID from token
-  const adminId = (req as any).user.id;
 
   if (!normalizedId) {
     await transaction.rollback();
-    return res.status(400).json({ message: 'Withdrawal id is required' });
+    return next(new ValidationError('Withdrawal id is required'));
   }
 
   try {
@@ -31,33 +32,35 @@ export const approveOrRejectWithdrawal = async (
 
     if (!withdrawal) {
       await transaction.rollback();
-      return res.status(404).json({ message: 'Withdrawal request not found.' });
+      return next(new NotFoundError('Withdrawal request not found.'));
     }
 
     if (withdrawal.status !== 'pending') {
       await transaction.rollback();
-      return res.status(400).json({ message: 'Withdrawal already processed.' });
+      return next(new ValidationError('Withdrawal already processed.'));
     }
 
     const wallet = await AgentWallet.findOne({
       where: { agentId: withdrawal.agentId },
       transaction,
     });
-    const agent = await Agent.findByPk(withdrawal.agentId); // for email or phone
+    const agent = await Agent.findByPk(withdrawal.agentId);
 
     if (!wallet || !agent) {
       await transaction.rollback();
-      return res
-        .status(404)
-        .json({ message: 'Agent wallet or profile not found.' });
+      return next(
+        new NotFoundError('Agent wallet or profile not found.'),
+      );
     }
 
     if (action === 'approve') {
       if (wallet.balance < withdrawal.amount) {
         await transaction.rollback();
-        return res
-          .status(400)
-          .json({ message: 'Insufficient wallet balance for approval.' });
+        return next(
+          new ValidationError(
+            'Insufficient wallet balance for approval.',
+          ),
+        );
       }
 
       wallet.balance -= withdrawal.amount;
@@ -84,40 +87,50 @@ export const approveOrRejectWithdrawal = async (
       await sendAgentNotification(agent, withdrawal.amount, 'rejected');
     } else {
       await transaction.rollback();
-      return res.status(400).json({ message: 'Invalid action' });
+      return next(new ValidationError('Invalid action'));
     }
+
     await transaction.commit();
-    return res
-      .status(200)
-      .json({ message: `Withdrawal ${action}d successfully`, withdrawal });
-    adminId;
+    return res.status(200).json({
+      message: `Withdrawal ${action}d successfully`,
+      withdrawal,
+    });
   } catch (err: any) {
     await transaction.rollback();
-    return res
-      .status(500)
-      .json({ message: 'Error processing withdrawal', error: err.message });
+    next(new BaseError('Error processing withdrawal: ' + err.message));
   }
 };
 
-//request
-export const requestWithdrawal = async (req: Request, res: Response) => {
+export const requestWithdrawal = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   const { error } = withdrawalRequestSchema.validate(req.body);
-  if (error) return res.status(400).json({ message: error.details[0].message });
+  if (error) {
+    return next(new ValidationError(error.details[0].message));
+  }
 
   const { amount, description, bankName, accountNumber, accountName } =
     req.body;
-
-  const agentId = (req as any).user.id;
+    const agentId = req.user.id;
 
   try {
+    const agent = await Agent.findByPk(agentId, {
+      attributes: ['id', 'fullName', 'email'],
+    });
+    if (!agent) {
+      return next(new NotFoundError('Agent not found'));
+    }
+
     const wallet = await AgentWallet.findOne({ where: { agentId } });
 
     if (!wallet) {
-      return res.status(404).json({ message: 'Agent wallet not found.' });
+      return next(new NotFoundError('Agent wallet not found'));
     }
 
     if (wallet.balance < amount) {
-      return res.status(400).json({ message: 'Insufficient wallet balance.' });
+      return next(new ValidationError('Insufficient wallet balance.'));
     }
 
     const withdrawal = await Withdrawal.create({
@@ -130,6 +143,17 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
       status: 'pending',
     });
 
+    await recordAuditTrail(
+      {
+        email: agent.email,
+        action: ` ${agent.fullName} Requested Withdrawal`,
+        entityType: 'Withdrawal',
+        entityId: withdrawal.id,
+        details: `Amount: ${amount}, Bank Name: ${bankName}, Account Name: ${accountName}`,
+      },
+      next,
+    );
+
     await sendWithdrawalEmailToAdmin(agentId, amount, description);
 
     return res.status(201).json({
@@ -137,14 +161,10 @@ export const requestWithdrawal = async (req: Request, res: Response) => {
       withdrawal,
     });
   } catch (err: any) {
-    return res.status(500).json({
-      message: 'Error creating withdrawal',
-      error: err.message,
-    });
+    next(new BaseError('Error creating withdrawal: ' + err.message));
   }
 };
 
-//get all withdrawals
 export const getAllWithdrawals = async (req: Request, res: Response) => {
   try {
     const withdrawals = await Withdrawal.findAll({
@@ -172,8 +192,6 @@ export const getAllWithdrawals = async (req: Request, res: Response) => {
     });
   }
 };
-
-// get withdrawals for a single agent
 
 export const getAgentWithdrawals = async (req: Request, res: Response) => {
   const { agentId } = req.params;
@@ -206,11 +224,9 @@ export const getAgentWithdrawals = async (req: Request, res: Response) => {
   }
 };
 
-//pay agent
 export const payAgent = async (req: Request, res: Response) => {
   const { agentId, amount } = req.body;
 
-  // Basic input validation
   if (!agentId || !amount || isNaN(amount)) {
     return res.status(400).json({
       message: 'agentId and a valid numeric amount are required',
@@ -219,13 +235,11 @@ export const payAgent = async (req: Request, res: Response) => {
 
   try {
     await sequelize.transaction(async (t) => {
-      // 1. Check if the agent exists
       const agent = await Agent.findByPk(agentId, { transaction: t });
       if (!agent) {
         throw new Error('Agent not found');
       }
 
-      // 2. Get the agent's wallet
       const wallet = await AgentWallet.findOne({
         where: { agentId },
         transaction: t,
@@ -239,11 +253,9 @@ export const payAgent = async (req: Request, res: Response) => {
         throw new Error('Insufficient wallet balance for this transaction');
       }
 
-      // 3. Deduct the amount
       wallet.balance -= Number(amount);
       await wallet.save({ transaction: t });
 
-      // 4. Log transaction as debit
       await WalletTransaction.create(
         {
           agentId,
